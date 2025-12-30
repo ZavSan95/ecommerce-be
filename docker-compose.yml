@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-m", "8222"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: ecommerce-gateway
+    environment:
+      PORT: 3000
+      NATS_SERVERS: nats://nats:4222
+    ports:
+      - "3000:3000"
+    depends_on:
+      - nats
+
+  ms-catalog:
+    build:
+      context: ./ms-catalog
+      dockerfile: Dockerfile
+    container_name: ecommerce-ms-catalog
+    environment:
+      PORT: 3001
+      NATS_SERVERS: nats://nats:4222
+    ports:
+      - "3001:3001"
+    depends_on:
+      - nats

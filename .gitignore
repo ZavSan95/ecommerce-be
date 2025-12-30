@@ -1,0 +1,17 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Contracts build
+contracts/dist/
+contracts/node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
