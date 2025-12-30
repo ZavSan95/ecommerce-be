@@ -3,7 +3,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { HttpModule } from '@nestjs/axios';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CatalogModule } from './catalog/catalog.module';
+import { ProductsModule } from './catalog/products/products.module';
 
 @Module({
   imports: [
@@ -17,9 +17,11 @@ import { CatalogModule } from './catalog/catalog.module';
         },
       },
     ]),
-    CatalogModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
+
+
 export class AppModule {}

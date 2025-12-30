@@ -23,6 +23,7 @@
     "@ecommerce/contracts": "file:../contracts",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^11.1.11",
     "@nestjs/platform-express": "^11.0.1",
     "nats": "^2.29.3",
