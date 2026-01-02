@@ -1,0 +1,2 @@
+MONGO_URL=mongodb+srv://zavattisantiago1995:2u7BDwvSysTtqV3e@ecommerce2026.yqmmrb0.mongodb.net/ecommerce_catalog
+NATS_SERVERS=nats://localhost:4222
