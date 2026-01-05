@@ -3,6 +3,8 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
+import { MessagePattern } from '@nestjs/microservices';
 
 @Controller('products')
 export class ProductsController {
@@ -26,6 +28,11 @@ export class ProductsController {
   @Delete(':id')
   delete(@Param() params: ProductIdParamDto){
     return this.productsService.delete(params.id);
+  }
+
+  @MessagePattern('products.checkout.validate')
+  async validateForCheckout(@Body() dto: ValidateCheckoutDto){
+    return this.productsService.validateForCheckout(dto);
   }
   
   

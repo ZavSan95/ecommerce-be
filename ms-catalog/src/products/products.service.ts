@@ -11,6 +11,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { mapMongoError } from 'src/common/errors/mongo-error.mapper';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
+import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
 
 @Injectable()
 export class ProductsService {
@@ -147,6 +148,52 @@ export class ProductsService {
       message: 'Producto eliminado correctamente',
       id,
     };
+  }
+
+  async validateForCheckout(dto: ValidateCheckoutDto){
+
+    type CheckoutValidationItem = {
+      productId: string;
+      productName: string;
+      sku: string;
+      unitPrice: number;
+      availableStock: number;
+    };
+
+    const result: CheckoutValidationItem[] = [];
+
+    for (const item of dto.items){
+      const product = await this.productModel.findById(item.productId);
+
+      if(!product || product.status !== 'active'){
+        throw new NotFoundException('Producto no disponible');
+      }
+
+      const variant = await product.variants.find(v => v.sku === item.sku);
+
+      if(!variant){
+        throw new NotFoundException('Variante no disponible');
+      }
+
+      if(variant.stock <= 0 ){
+        throw new BadRequestException('Sin Stock');
+      }
+
+      if (item.quantity > variant.stock) {
+        throw new BadRequestException('Stock insuficiente');
+      }
+
+      result.push({
+        productId: product.id,
+        productName: product.name,
+        sku: variant.sku,
+        unitPrice: variant.price,
+        availableStock: variant.stock,
+      });
+
+    }
+
+    return { items: result };
   }
 
 }
