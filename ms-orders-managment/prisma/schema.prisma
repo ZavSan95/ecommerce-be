@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Order {
+  id               String   @id @default(uuid())
+  orderNumber      String   @unique
+  status           OrderStatus
+  currency         String   @default("ARS")
+
+  subtotalAmount   Decimal  @db.Decimal(12, 2)
+  discountAmount   Decimal  @db.Decimal(12, 2) @default(0)
+  taxAmount        Decimal  @db.Decimal(12, 2)
+  shippingAmount   Decimal  @db.Decimal(12, 2) @default(0)
+  totalAmount      Decimal  @db.Decimal(12, 2)
+
+  customerId       String?
+  customerEmail    String
+  customerName     String
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  items            OrderItem[]
+  payments         OrderPayment[]
+  addresses        OrderAddress[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id            String   @id @default(uuid())
+  orderId       String
+
+  productId     String
+  variantId     String?
+  productName   String
+  variantName   String?
+  sku           String?
+
+  unitPrice     Decimal  @db.Decimal(12, 2)
+  quantity      Int
+  totalPrice    Decimal  @db.Decimal(12, 2)
+
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model OrderPayment {
+  id                String        @id @default(uuid())
+  orderId           String
+
+  provider          PaymentProvider
+  providerPaymentId String?
+  status            PaymentStatus
+  amount            Decimal       @db.Decimal(12, 2)
+
+  payload           Json?
+  createdAt         DateTime      @default(now())
+
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model OrderAddress {
+  id          String       @id @default(uuid())
+  orderId     String
+
+  type        AddressType
+
+  fullName    String
+  phone       String
+  street      String
+  number      String
+  city        String
+  state       String
+  postalCode String
+  country     String
+
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+// =====================================================
+// ENUMS
+// =====================================================
+
+enum OrderStatus {
+  pending_payment
+  paid
+  cancelled
+  refunded
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  rejected
+  refunded
+}
+
+enum PaymentProvider {
+  mercadopago
+  stripe
+  paypal
+  cash
+}
+
+enum AddressType {
+  billing
+  shipping
+}

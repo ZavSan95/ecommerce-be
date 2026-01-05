@@ -4,6 +4,7 @@ import { Transport } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
+
   const app = await NestFactory.create(AppModule);
 
   // Microservice NATS
@@ -24,6 +25,6 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
 
-  await app.listen(3001, '0.0.0.0');
+  await app.listen(process.env.ORDERS_MANAGMENT_PORT ?? 3002);
 }
 bootstrap();
