@@ -110,8 +110,8 @@ enum OrderStatus {
 
 enum PaymentStatus {
   pending
-  approved
-  rejected
+  paid
+  failed
   refunded
 }
 

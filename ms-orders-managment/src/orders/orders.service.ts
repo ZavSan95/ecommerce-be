@@ -6,6 +6,7 @@ import { timeout, firstValueFrom } from 'rxjs';
 import { CheckoutValidatedItem, CheckoutValidationResponse } from './types/products.types';
 import { OrderItemInput } from './types/order-item.type';
 import { PrismaService } from '../database/prisma.service';
+import { PaymentProvider } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
@@ -137,9 +138,66 @@ export class OrdersService {
         });
 
         // =====================================================
-        // 4. Response
+        // 4. Llamado a Payments-ms
         // =====================================================
         const payment = order.payments[0];
+
+        let paymentInit;
+        
+        try {
+
+            paymentInit = await firstValueFrom(
+                this.natsClient.send('payments.create', {
+                    orderId: order.id,
+                    paymentId: payment.id,
+                    method: dto.paymentProvider,
+                    amount: total,
+                    currency: 'ARS',
+                    customer: {
+                        email: order.customerEmail,
+                        name: order.customerName,
+                    },
+                }),
+            );
+
+            console.log('📦 Respuesta de payments:', paymentInit);
+
+            if (!paymentInit?.providerPaymentId || !paymentInit?.checkoutUrl) {
+                throw new Error('Respuesta inválida de la pasarela de pago');
+            }
+
+            await this.prisma.orderPayment.update({
+                where: { id: payment.id },
+                data: {
+                    providerPaymentId: paymentInit.providerPaymentId,
+                    payload: paymentInit,
+                    status: 'pending',
+                },
+            });
+            
+        } catch (error) {
+            
+            console.log('❌ Error en pasarela de pago:', error);
+
+            await this.prisma.orderPayment.update({
+                where: { id: payment.id },
+                data: {
+                    status: 'failed',
+                    payload: {
+                        error: error?.message ?? 'Error desconocido en pasarela',
+                    },
+                },
+            });
+
+            await this.prisma.order.update({
+                where: { id: order.id },
+                data: {
+                    status: 'cancelled',
+                },
+            });
+
+            throw new BadRequestException('No se pudo inicializar el pago. Intente nuevamente.',)
+        }
 
         return {
         orderId: order.id,
@@ -165,4 +223,41 @@ export class OrdersService {
         };
 
     }
+
+    async confirmPayment(payload: {
+        provider: PaymentProvider;
+        providerPaymentId: string;
+        orderId: string;
+        amount: number;
+        }) {
+        const order = await this.prisma.order.findUnique({
+            where: { id: payload.orderId },
+        });
+
+        // Idempotencia + seguridad
+        if (!order || order.status !== 'pending_payment') {
+            return;
+        }
+
+        await this.prisma.$transaction([
+            this.prisma.orderPayment.updateMany({
+            where: {
+                orderId: payload.orderId,
+                provider: payload.provider,
+            },
+            data: {
+                status: 'paid',
+                providerPaymentId: String(payload.providerPaymentId),
+            },
+            }),
+
+            this.prisma.order.update({
+            where: { id: payload.orderId },
+            data: { status: 'paid' },
+            }),
+        ]);
+
+        console.log(`✅ Orden ${payload.orderId} marcada como PAID`);
+    }
+
 }
