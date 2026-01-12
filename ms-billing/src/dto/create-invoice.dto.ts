@@ -1,12 +1,29 @@
-import { IsIn, IsOptional, IsUUID } from "class-validator";
+import { IsArray, IsNumber, IsString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
-export class CreateInvoiceDto{
+class InvoiceItemDto {
+  @IsString()
+  description: string;
 
-    @IsUUID()
-    orderId: string;
+  @IsNumber()
+  quantity: number;
 
-    @IsOptional()
-    @IsIn(['C', 'B'])
-    invoiceType: 'C' | 'B'
-    
+  @IsNumber()
+  unitPrice: number;
+}
+
+export class CreateInvoiceDto {
+  @IsString()
+  id: string; // orderId
+
+  @IsString()
+  customerName: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => InvoiceItemDto)
+  items: InvoiceItemDto[];
+
+  @IsNumber()
+  total: number;
 }

@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { NatsModule } from './nats/nats.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -12,7 +13,8 @@ import { InvoicesModule } from './invoices/invoices.module';
       envFilePath: '.env',
     }),
     NatsModule,
-    InvoicesModule
+    InvoicesModule,
+    DatabaseModule
   ],
   controllers: [AppController],
   providers: [AppService],

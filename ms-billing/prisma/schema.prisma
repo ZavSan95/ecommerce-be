@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Invoice {
+  id                String   @id @default(uuid())
+
+  // Relación con Order Service
+  orderId           String   @unique
+
+  // Datos AFIP
+  invoiceType       InvoiceType
+  pointOfSale       Int
+  voucherNumber     Int
+  voucherDate       DateTime
+  cae               String
+  caeDueDate        DateTime
+
+  // Importes
+  currency          String   @default("ARS")
+  totalAmount       Decimal  @db.Decimal(15,2)
+  netAmount         Decimal  @db.Decimal(15,2)
+  taxAmount         Decimal  @db.Decimal(15,2)
+
+  // Cliente
+  customerName      String
+  customerDocType   String
+  customerDocNumber String
+
+  // Respuesta completa AFIP (auditoría)
+  afipResponse      Json
+
+  status            InvoiceStatus @default(ISSUED)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relaciones
+  items             InvoiceItem[]
+  files             InvoiceFile[]
+
+  @@index([orderId])
+  @@index([voucherNumber, pointOfSale])
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId  String
+
+  description String
+  quantity    Decimal  @db.Decimal(10,2)
+  unitPrice  Decimal  @db.Decimal(15,2)
+  subtotal   Decimal  @db.Decimal(15,2)
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+
+model InvoiceFile {
+  id         String   @id @default(uuid())
+  invoiceId String
+
+  type       InvoiceFileType
+  storage    StorageProvider
+  path       String      // bucket/key
+  url        String?     // pública o firmada
+
+  createdAt DateTime @default(now())
+
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+enum InvoiceType {
+  A
+  B
+  C
+}
+
+enum InvoiceStatus {
+  ISSUED
+  CANCELED
+}
+
+enum InvoiceFileType {
+  PDF
+}
+
+enum StorageProvider {
+  WASABI
+}

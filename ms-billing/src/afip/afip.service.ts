@@ -118,4 +118,21 @@ export class AfipService {
 
     return res.file;
   }
+
+  async createPdfFromHtml(
+    html: string,
+      opts: { fileName: string },
+      ) {
+      return this.afip.ElectronicBilling.createPDF({
+          html,
+          file_name: opts.fileName,
+          options: {
+          width: 8,
+          marginLeft: 0.4,
+          marginRight: 0.4,
+          marginTop: 0.4,
+          marginBottom: 0.4,
+          },
+      });
+  }
 }

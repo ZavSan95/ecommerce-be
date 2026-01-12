@@ -8,7 +8,7 @@ MS-ORDERS-MANAGMENT
 
 -DAR PERMISOS A USUARIO PARA SHADOW DATABASE:
 
-        -docker exec -it mysql-orders mysql -u root -root
+        -docker exec -it mysql-invoices mysql -u root -p
         -GRANT
         CREATE,
         DROP,
@@ -16,7 +16,7 @@ MS-ORDERS-MANAGMENT
         INDEX,
         REFERENCES
         ON *.*
-        TO 'orders_user'@'%';
+        TO 'invoices_user'@'%';
 
         FLUSH PRIVILEGES;
         -exit;
