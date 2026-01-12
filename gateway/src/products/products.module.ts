@@ -1,10 +1,13 @@
 import { Logger, Module, OnModuleInit } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
+
 import { ProductsController } from './products.controller';
+import { NatsModule } from '../nats/nats.module';
+import { ProductService } from './products.service';
 
 @Module({
-  imports: [HttpModule],
+  imports: [NatsModule],
   controllers: [ProductsController],
+  providers: [ProductService]
 })
 export class ProductsModule implements OnModuleInit {
   private readonly logger = new Logger(ProductsModule.name);

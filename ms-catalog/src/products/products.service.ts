@@ -12,17 +12,36 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { mapMongoError } from 'src/common/errors/mongo-error.mapper';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
+import { Category, CategoryDocument } from 'src/categories/schemas/category.schema';
+import { CategoryStatus } from 'src/categories/enum/category-status.enum';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Category.name)
+    private readonly categoryModel: Model<CategoryDocument>,
   ) {}
 
   async create(dto: CreateProductDto) {
     try {
-      return await this.productModel.create(dto);
+
+      const category = await this.categoryModel.findById(dto.categoryId);
+
+      if (!category || category.status !== CategoryStatus.ACTIVE) {
+        throw new BadRequestException('Categoría inválida o inactiva');
+      }
+
+      console.log('💾 DTO antes de guardar:', dto);
+
+      const product = await this.productModel.create(dto);
+
+      console.log('✅ Producto creado con ID:', product._id);
+
+      return product;
+
+      
     } catch (error) {
       throw mapMongoError(error);
     }
@@ -45,7 +64,7 @@ export class ProductsService {
     ===================================================== */
     if (dto.name !== undefined) product.name = dto.name;
     if (dto.description !== undefined) product.description = dto.description;
-    if (dto.category !== undefined) product.category = dto.category;
+    //if (dto.category !== undefined) product.categoryId = dto.category;
     if (dto.status !== undefined) product.status = dto.status;
 
     /* =====================================================

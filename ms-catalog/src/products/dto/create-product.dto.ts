@@ -5,6 +5,7 @@ import {
   IsString,
   ValidateNested,
   ArrayMinSize,
+  IsMongoId,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateProductVariantDto } from './create-product-variant.dto';
@@ -18,14 +19,11 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
-  @IsString()
-  @IsNotEmpty()
-  category: string;
+  @IsMongoId({ message: 'categoryId must be a valid Mongo ObjectId' })
+  categoryId: string;
 
   @IsArray()
-  @ArrayMinSize(1, {
-    message: 'Product must have at least one variant',
-  })
+  @ArrayMinSize(1, { message: 'Product must have at least one variant' })
   @ValidateNested({ each: true })
   @Type(() => CreateProductVariantDto)
   variants: CreateProductVariantDto[];

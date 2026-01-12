@@ -4,10 +4,7 @@ import { Transport } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Microservice NATS
-  app.connectMicroservice({
+  const app = await NestFactory.createMicroservice(AppModule, {
     transport: Transport.NATS,
     options: {
       servers: [process.env.NATS_SERVERS || 'nats://localhost:4222'],
@@ -22,8 +19,8 @@ async function bootstrap() {
     }),
   );
 
-  await app.startAllMicroservices();
-
-  await app.listen(3001, '0.0.0.0');
+  await app.listen(); // 👈 SOLO ESTO
+  console.log('🚀 ms-catalog escuchando SOLO por NATS');
 }
+
 bootstrap();

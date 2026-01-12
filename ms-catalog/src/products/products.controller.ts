@@ -1,39 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
-import { ProductIdParamDto } from './dto/product-id-param.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
-import { MessagePattern } from '@nestjs/microservices';
 
-@Controller('products')
+@Controller()
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor() {}
 
-  @Post()
-  create(@Body() dto: CreateProductDto) {
-    return this.productsService.create(dto);
+  @MessagePattern('products.create')
+  create(@Payload() dto: CreateProductDto) {
+    console.log('📥 MS Products CREATE:', dto);
+    //return this.productsService.create(dto);
   }
-
-  @Get()
-  findAll() {
-    return this.productsService.findAll();
-  }
-
-  @Patch(':id')
-  update(@Param() params: ProductIdParamDto, @Body() dto: UpdateProductDto){
-    return this.productsService.update(params.id, dto);
-  }
-
-  @Delete(':id')
-  delete(@Param() params: ProductIdParamDto){
-    return this.productsService.delete(params.id);
-  }
-
-  @MessagePattern('products.checkout.validate')
-  async validateForCheckout(@Body() dto: ValidateCheckoutDto){
-    return this.productsService.validateForCheckout(dto);
-  }
-  
-  
 }
