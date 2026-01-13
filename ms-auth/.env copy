@@ -1,0 +1,15 @@
+# APP
+NODE_ENV=development
+AUTH_SERVICE_NAME=ms-auth
+AUTH_PORT=3005
+
+# NATS
+NATS_SERVERS=nats://localhost:4222
+
+# JWT
+JWT_SECRET=ShJ0S8roDR346xwKFEVi0iTiZd3UkHbkawQTO5zc1rD
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+#MONGODB
+MONGO_URL=mongodb+srv://zavattisantiago1995:2u7BDwvSysTtqV3e@ecommerce2026.yqmmrb0.mongodb.net/ecommerce_catalog

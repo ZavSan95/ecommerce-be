@@ -20,3 +20,5 @@ MS-ORDERS-MANAGMENT
 
         FLUSH PRIVILEGES;
         -exit;
+
+-REMOVER ARCHIVOS GIT MS NUEVO Remove-Item -Recurse -Force .git

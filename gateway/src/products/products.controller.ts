@@ -1,17 +1,40 @@
-import { Body, Controller, Delete, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { mapAxiosError } from '../common/utils/http-error.mapper';
 import { ProductService } from './products.service';
-import { firstValueFrom } from 'rxjs';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+
 
 @Controller('catalog/products')
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class ProductsController {
 
   constructor(
     private readonly productService: ProductService
   ) {}
+
+  @Get()
+  findAll() {
+    return { message: 'Productos públicos (logueado)' };
+  }
+
+  @Get('admin')
+  @Roles('admin')
+  getAdminData() {
+    return { message: 'Solo admin' };
+  }
+
+  @Get('create')
+  @Permissions('products:create')
+  createProduct() {
+    return { message: 'Crear producto' };
+  }
 
   @Post()
   @HttpCode(201)
