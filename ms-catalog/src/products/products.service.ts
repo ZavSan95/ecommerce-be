@@ -14,6 +14,8 @@ import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
 import { Category, CategoryDocument } from 'src/categories/schemas/category.schema';
 import { CategoryStatus } from 'src/categories/enum/category-status.enum';
+import { RpcException } from '@nestjs/microservices';
+import { CatalogErrors } from 'src/common/errors/error-codes';
 
 @Injectable()
 export class ProductsService {
@@ -29,20 +31,45 @@ export class ProductsService {
 
       const category = await this.categoryModel.findById(dto.categoryId);
 
-      if (!category || category.status !== CategoryStatus.ACTIVE) {
-        throw new BadRequestException('Categoría inválida o inactiva');
+      if(!category){
+        throw new RpcException({
+          statusCode: 400,
+          ...CatalogErrors.CATEGORY_NOT_FOUND,
+        });
       }
 
-      console.log('💾 DTO antes de guardar:', dto);
+      if(category.status !== CategoryStatus.ACTIVE){
+        throw new RpcException({
+          statusCode: 400,
+          ...CatalogErrors.CATEGORY_INACTIVE,
+        });
+      }
+
+      const skus = dto.variants.map( v => v.sku);
+
+      const duplicateSkus = skus.filter(
+        (sku, index) => skus.indexOf(sku) !== index,
+      );
+
+      if(duplicateSkus.length > 0){
+        throw new RpcException({
+          statusCode: 400,
+          ...CatalogErrors.SKU_DUPLICATE
+        });
+      }
 
       const product = await this.productModel.create(dto);
-
-      console.log('✅ Producto creado con ID:', product._id);
 
       return product;
 
       
     } catch (error) {
+
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      // 🔹 Si es error de Mongo u otro
       throw mapMongoError(error);
     }
   }
@@ -51,33 +78,38 @@ export class ProductsService {
     return this.productModel.find().exec();
   }
 
+
   async update(productId: string, dto: UpdateProductDto) {
 
     const product = await this.productModel.findById(productId);
 
     if (!product) {
-      throw new NotFoundException('Producto no encontrado');
+      throw new RpcException({
+        statusCode: 404,
+        code: 'PRODUCT_NOT_FOUND',
+        message: 'Producto no encontrado',
+      });
     }
 
-    /* =====================================================
-       1. Actualizar campos simples del producto
-    ===================================================== */
+    /* =============================
+      1. Campos simples
+    ============================= */
     if (dto.name !== undefined) product.name = dto.name;
     if (dto.description !== undefined) product.description = dto.description;
-    //if (dto.category !== undefined) product.categoryId = dto.category;
     if (dto.status !== undefined) product.status = dto.status;
 
-    /* =====================================================
-       2. Actualizar variantes existentes (por SKU)
-    ===================================================== */
+    /* =============================
+      2. Actualizar variantes
+    ============================= */
     if (dto.variantsToUpdate?.length) {
       for (const update of dto.variantsToUpdate) {
         const variant = product.variants.find(v => v.sku === update.sku);
 
         if (!variant) {
-          throw new BadRequestException(
-            `Variant con sku ${update.sku} no existe`,
-          );
+          throw new RpcException({
+            statusCode: 400,
+            message: `Variante con sku ${update.sku} no existe`,
+          });
         }
 
         if (update.price !== undefined) variant.price = update.price;
@@ -90,21 +122,21 @@ export class ProductsService {
       }
     }
 
-    /* =====================================================
-       3. Agregar / Upsert de nuevas variantes
-    ===================================================== */
+    /* =============================
+      3. Agregar nuevas variantes
+    ============================= */
     if (dto.variantsToAdd?.length) {
 
-      // 🔒 detectar duplicados dentro del payload
-      const payloadSkus = dto.variantsToAdd.map(v => v.sku);
-      const duplicatedInPayload = payloadSkus.filter(
-        (sku, index) => payloadSkus.indexOf(sku) !== index,
+      const skus = dto.variantsToAdd.map(v => v.sku);
+      const duplicated = skus.filter(
+        (sku, index) => skus.indexOf(sku) !== index,
       );
 
-      if (duplicatedInPayload.length) {
-        throw new BadRequestException(
-          `SKU duplicado en la solicitud: ${duplicatedInPayload.join(', ')}`,
-        );
+      if (duplicated.length) {
+        throw new RpcException({
+          statusCode: 400,
+          message: `SKU duplicado en la solicitud: ${duplicated.join(', ')}`,
+        });
       }
 
       for (const newVariant of dto.variantsToAdd) {
@@ -113,54 +145,54 @@ export class ProductsService {
         );
 
         if (existingIndex >= 0) {
-          // 🔁 UPSERT: actualizar variante existente
           product.variants[existingIndex] = {
             ...product.variants[existingIndex],
             ...newVariant,
           };
         } else {
-          // ➕ agregar nueva variante
           product.variants.push(newVariant as any);
         }
       }
     }
 
-    /* =====================================================
-       4. Reglas de negocio
-    ===================================================== */
-
-    // Al menos una variante
+    /* =============================
+      4. Reglas de negocio
+    ============================= */
     if (!product.variants.length) {
-      throw new BadRequestException(
-        'El producto debe tener al menos una variante',
-      );
+      throw new RpcException({
+        statusCode: 400,
+        message: 'El producto debe tener al menos una variante',
+      });
     }
 
-    // Solo una variante por defecto
     const defaults = product.variants.filter(v => v.isDefault);
     if (defaults.length > 1) {
       product.variants.forEach(v => (v.isDefault = false));
-      defaults[defaults.length - 1].isDefault = true;
+      defaults.at(-1)!.isDefault = true;
     }
 
-    /* =====================================================
-       5. Guardar
-    ===================================================== */
+    /* =============================
+      5. Guardar
+    ============================= */
     try {
       return await product.save();
     } catch (error) {
+      if (error instanceof RpcException) throw error;
       throw mapMongoError(error);
     }
   }
+
 
   async delete(id: string) {
 
     const product = await this.productModel.findById(id);
 
-    if (!product) {
-      throw new NotFoundException('Producto no encontrado');
+    if(!product){
+      throw new RpcException({
+        statusCode: 400,
+        ...CatalogErrors.PRODUCT_NOT_FOUND,
+      });
     }
-
     await product.deleteOne();
 
     return {

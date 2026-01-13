@@ -1,13 +1,11 @@
-import {
-  ConflictException,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { CatalogErrors } from './error-codes';
 
 export function mapMongoError(error: any): never {
 
   if (error?.code === 11000) {
-    throw new ConflictException({
+    throw new RpcException({
+      statusCode: 409,
       ...CatalogErrors.SKU_DUPLICATE,
       meta: {
         field: Object.keys(error.keyPattern || {}),
@@ -16,7 +14,8 @@ export function mapMongoError(error: any): never {
     });
   }
 
-  throw new InternalServerErrorException(
-    CatalogErrors.PRODUCT_CREATE_FAILED,
-  );
+  throw new RpcException({
+    statusCode: 500,
+    ...CatalogErrors.PRODUCT_CREATE_FAILED,
+  });
 }

@@ -3,7 +3,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom } from 'rxjs';
 
 
 @Injectable()
@@ -14,27 +14,35 @@ export class ProductService {
   ) {}
 
   async create(dto: CreateProductDto) {
-    return await firstValueFrom(
-      this.natsClient.send('products.create', dto),
+    return firstValueFrom(
+      this.natsClient.send('products.create', dto).pipe(
+        catchError((error) => {
+          throw error;
+        }),
+      ),
     );
   }
 
-  async patch(id: string, dto: UpdateProductDto){
-
-    const payload = { id, dto };
-    return this.natsClient.send(
-      'products.update',
-      {
-        id,
-        data: dto, 
-      },
+  async patch(id: string, dto: UpdateProductDto) {
+    return await firstValueFrom(
+      this.natsClient.send(
+        'products.update',
+        {
+          id,
+          data: dto,
+        },
+      ),
     );
   }
 
   async delete(params: ProductIdParamDto){
-    return this.natsClient.send(
+    return await firstValueFrom(
+      this.natsClient.send(
         'products.delete',
         params
+      ),
     );
   }
+
+
 }

@@ -4,10 +4,14 @@ import { Transport } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.createMicroservice(AppModule, {
+
+  const app = await NestFactory.create(AppModule);
+
+  app.connectMicroservice({
     transport: Transport.NATS,
     options: {
       servers: [process.env.NATS_SERVERS || 'nats://localhost:4222'],
+      queue: 'notifications-service'
     },
   });
 
@@ -15,11 +19,12 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true,
+      transform: true
     }),
   );
 
-  await app.listen();
-}
+  await app.startAllMicroservices();
 
+  await app.listen(process.env.NOTIFICATIONS_PORT ?? 3010);
+}
 bootstrap();

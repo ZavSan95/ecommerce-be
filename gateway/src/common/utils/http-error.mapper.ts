@@ -2,16 +2,35 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 
 export function mapAxiosError(error: any): never {
 
-  // 🔹 Error HTTP del microservicio
-  if (error.response) {
+  // 🔹 Error RPC directo
+  if (error?.statusCode && error?.message) {
     throw new HttpException(
-      error.response.data,   // 👈 lo que devuelve ms-catalog
-      error.response.status, // 👈 409
+      {
+        code: error.code,
+        message: error.message,
+        meta: error.meta,
+      },
+      error.statusCode,
     );
   }
 
-  // 🔹 Timeout / conexión / ms caído
-  if (error.code === 'ECONNREFUSED' || error.code === 'ECONNRESET') {
+  // 🔹 Error RPC envuelto (MUY común)
+  if (error?.error?.statusCode && error?.error?.message) {
+    throw new HttpException(
+      {
+        code: error.error.code,
+        message: error.error.message,
+        meta: error.error.meta,
+      },
+      error.error.statusCode,
+    );
+  }
+
+  // 🔹 Servicio caído
+  if (
+    error?.code === 'ECONNREFUSED' ||
+    error?.code === 'ETIMEDOUT'
+  ) {
     throw new HttpException(
       {
         code: 'SERVICE_UNAVAILABLE',
@@ -21,11 +40,12 @@ export function mapAxiosError(error: any): never {
     );
   }
 
-  // 🔹 Fallback
+  // 🔹 Fallback REAL (ahora sí)
   throw new HttpException(
     {
       code: 'GATEWAY_ERROR',
       message: 'Error inesperado en el gateway',
+      raw: error?.message ?? error,
     },
     HttpStatus.INTERNAL_SERVER_ERROR,
   );
