@@ -12,7 +12,7 @@ import { Permissions } from '../auth/decorators/permissions.decorator';
 
 
 @Controller('catalog/products')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(RolesGuard, PermissionsGuard)
 export class ProductsController {
 
   constructor(

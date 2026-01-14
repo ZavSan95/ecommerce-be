@@ -29,6 +29,21 @@ export class User {
     google?: string;
     facebook?: string;
   };
+
+  @Prop({
+    type: [
+      {
+        tokenHash: String,
+        createdAt: Date,
+      },
+    ],
+    default: [],
+  })
+  refreshTokens: {
+    tokenHash: string;
+    createdAt: Date;
+  }[];
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

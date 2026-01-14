@@ -8,12 +8,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
+import type { StringValue } from 'ms';
+import { ConfigService } from '@nestjs/config';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RefreshResponse } from './interfaces/refresh-response.interface';
+import { LogoutDto } from './dto/logout.dto';
 
 @Injectable()
 export class AuthService {
     constructor(
         @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-        private readonly jwtService: JwtService
+        private readonly jwtService: JwtService,
+        private readonly config: ConfigService,
     ){}
 
     async register(dto: RegisterDto): Promise<AuthResponse> {
@@ -57,7 +63,7 @@ export class AuthService {
     return this.buildAuthResponse(user);
     }
 
-    private buildAuthResponse(user: UserDocument): AuthResponse {
+    private async buildAuthResponse(user: UserDocument): Promise<AuthResponse> {
     const userId = user._id.toString();
 
     const payload: JwtPayload = {
@@ -67,6 +73,11 @@ export class AuthService {
         permissions: user.permissions,
     };
 
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = await this.generateRefreshToken(userId);
+
+    await this.storeRefreshToken(user, refreshToken);
+
     return {
         user: {
         id: userId,
@@ -74,10 +85,111 @@ export class AuthService {
         name: user.name,
         roles: user.roles,
         },
-        accessToken: this.jwtService.sign(payload),
-        refreshToken: 'TODO_REFRESH_TOKEN',
+        accessToken,
+        refreshToken,
     };
     }
+
+
+    private async generateRefreshToken(userId: string): Promise<string> {
+        return this.jwtService.signAsync(
+            { sub: userId },
+            {
+            secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+            expiresIn: this.config.get<StringValue>('JWT_REFRESH_EXPIRES_IN') ?? '7d',
+            },
+        );
+    }
+
+    private async storeRefreshToken(user: UserDocument, refreshToken: string) {
+        const hash = await bcrypt.hash(refreshToken, 10);
+
+        user.refreshTokens.push({
+            tokenHash: hash,
+            createdAt: new Date(),
+        });
+
+        await user.save();
+    }
+
+    async refresh(dto: RefreshTokenDto): Promise<RefreshResponse> {
+        const { refreshToken } = dto;
+
+        const payload = this.jwtService.verify<{ sub: string }>(
+            refreshToken,
+            {
+            secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
+            },
+        );
+
+        const user = await this.userModel.findById(payload.sub);
+        if (!user) {
+            throw new UnauthorizedException();
+        }
+
+        const tokenIndex = await Promise.any(
+            user.refreshTokens.map(async (t, i) =>
+            (await bcrypt.compare(refreshToken, t.tokenHash)) ? i : Promise.reject(),
+            ),
+        ).catch(() => -1);
+
+        if (tokenIndex === -1) {
+            throw new UnauthorizedException();
+        }
+
+        // 🔁 rotación
+        user.refreshTokens.splice(tokenIndex, 1);
+
+        const newAccessToken = this.jwtService.sign({
+            sub: user._id.toString(),
+            email: user.email,
+            roles: user.roles,
+            permissions: user.permissions,
+        });
+
+        const newRefreshToken = await this.generateRefreshToken(user._id.toString());
+        await this.storeRefreshToken(user, newRefreshToken);
+
+        return {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+        };
+    }
+
+    async logout(dto: LogoutDto): Promise<{ success: true }> {
+    const { refreshToken } = dto;
+
+    // Buscamos un usuario que tenga tokens (optimización simple)
+    const users = await this.userModel.find({
+        'refreshTokens.tokenHash': { $exists: true },
+    });
+
+    let revoked = false;
+
+    for (const user of users) {
+        const before = user.refreshTokens.length;
+
+        user.refreshTokens = user.refreshTokens.filter(
+        t => !bcrypt.compareSync(refreshToken, t.tokenHash),
+        );
+
+        if (user.refreshTokens.length !== before) {
+        revoked = true;
+        await user.save();
+        break;
+        }
+    }
+
+    if (!revoked) {
+        // No revelamos si el token existía o no
+        throw new UnauthorizedException();
+    }
+
+    return { success: true };
+    }
+
+
+
 
 
 }
