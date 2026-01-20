@@ -26,6 +26,14 @@ export class ProductsService {
     private readonly categoryModel: Model<CategoryDocument>,
   ) {}
 
+  async getAll() {
+    const products = await this.productModel
+      .find({ status: 'active' })
+      .lean();
+
+    return products;
+  }
+
   async create(dto: CreateProductDto) {
     try {
 

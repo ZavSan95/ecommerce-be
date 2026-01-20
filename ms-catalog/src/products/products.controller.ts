@@ -27,4 +27,9 @@ export class ProductsController {
   ){
     return this.productsService.delete(params.id);
   }
+
+  @MessagePattern('products.getAll')
+  async getAll() {
+    return this.productsService.getAll();
+  }
 }
