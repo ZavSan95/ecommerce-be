@@ -2,6 +2,7 @@
   import { ClientProxy } from '@nestjs/microservices';
   import { CreateCategoryDto } from './dto/create-category.dto';
   import { UpdateCategoryDto } from './dto/update-category.dto';
+import { catchError, firstValueFrom } from 'rxjs';
 
 
   @Injectable()
@@ -10,6 +11,16 @@
       @Inject('NATS_CLIENT')
       private readonly natsClient: ClientProxy,
     ) {}
+
+    async getAll(){
+      return await firstValueFrom(
+        this.natsClient.send('categories.getAll', {}).pipe(
+          catchError((error) => {
+            throw error;
+          }),
+        ),
+      );
+    }
 
     async create(dto: CreateCategoryDto) {
       

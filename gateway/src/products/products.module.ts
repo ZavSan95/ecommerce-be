@@ -5,7 +5,9 @@ import { NatsModule } from '../nats/nats.module';
 import { ProductService } from './products.service';
 
 @Module({
-  imports: [NatsModule],
+  imports: [
+    NatsModule,
+  ],
   controllers: [ProductsController],
   providers: [ProductService]
 })

@@ -34,6 +34,29 @@ export class ProductsService {
     return products;
   }
 
+  async getBySlug(slug: string) {
+
+    const category = await this.categoryModel
+      .findOne({ status: 'active', slug })
+      .lean();
+
+    if (!category) {
+      throw new RpcException({
+        code: CatalogErrors.CATEGORY_NOT_FOUND,
+        message: 'Categoría no encontrada',
+      });
+    }
+
+    const products = await this.productModel
+      .find({
+        status: 'active',
+        categoryId: category._id.toString(),
+      })
+      .lean();
+
+    return products;
+  }
+
   async create(dto: CreateProductDto) {
     try {
 
@@ -66,7 +89,13 @@ export class ProductsService {
         });
       }
 
-      const product = await this.productModel.create(dto);
+      const product = await this.productModel.create({
+        ...dto,
+        variants: dto.variants.map(v => ({
+          ...v,
+          images: v.images ?? [],
+        })),
+      });
 
       return product;
 

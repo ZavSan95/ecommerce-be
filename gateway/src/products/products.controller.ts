@@ -1,41 +1,50 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { mapAxiosError } from '../common/utils/http-error.mapper';
 import { ProductService } from './products.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { PermissionsGuard } from '../auth/guards/permissions.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('catalog/products')
-@UseGuards(RolesGuard, PermissionsGuard)
 export class ProductsController {
 
   constructor(
-    private readonly productService: ProductService
+    private readonly productService: ProductService,
   ) {}
 
+  // ---------------------------
+  // GET ALL
+  // ---------------------------
+  @Public()
   @Get()
-  findAll() {
-    return { message: 'Productos públicos (logueado)' };
+  async getAll() {
+    return this.productService.getAll();
   }
 
-  @Get('admin')
-  @Roles('admin')
-  getAdminData() {
-    return { message: 'Solo admin' };
+  // ---------------------------
+  // GET BY SLUG / ID
+  // ---------------------------
+  @Public()
+  @Get(':id')
+  async getBySlug(@Param('id') id: string) {
+    return this.productService.getBySlug(id);
   }
 
-  @Get('create')
-  @Permissions('products:create')
-  createProduct() {
-    return { message: 'Crear producto' };
-  }
-
+  // ---------------------------
+  // CREATE PRODUCT
+  // ---------------------------
+  @Public()
   @Post()
   @HttpCode(201)
   async create(@Body() dto: CreateProductDto) {
@@ -46,41 +55,45 @@ export class ProductsController {
         message: 'Producto creado correctamente',
         data: product,
       };
-
     } catch (error) {
       mapAxiosError(error);
     }
   }
 
+  // ---------------------------
+  // UPDATE
+  // ---------------------------
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ) {
     try {
       const updatedProduct = await this.productService.patch(id, dto);
 
       return {
         message: `Producto ID: ${id} actualizado correctamente`,
-        data: updatedProduct
+        data: updatedProduct,
       };
-
     } catch (error) {
       mapAxiosError(error);
     }
   }
 
+  // ---------------------------
+  // DELETE
+  // ---------------------------
   @Delete(':id')
-  async delete(@Param() params: ProductIdParamDto){
+  async delete(@Param() params: ProductIdParamDto) {
     try {
-
       const deletedProduct = await this.productService.delete(params);
 
       return {
         message: `Producto ID: ${params.id} eliminado correctamente`,
-        data: deletedProduct
-      }
-
+        data: deletedProduct,
+      };
     } catch (error) {
       mapAxiosError(error);
     }
   }
-
 }

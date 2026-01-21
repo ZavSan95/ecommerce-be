@@ -7,64 +7,86 @@ import { Model } from 'mongoose';
 import { mapMongoError } from 'src/common/errors/mongo-error.mapper';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { RpcException } from '@nestjs/microservices';
+import { toSlug } from 'src/common/utils/slug.util';
 
 
 @Injectable()
 export class CategoriesService {
     
-    constructor(
-        @InjectModel(Category.name)
-        private readonly categoryModel: Model<CategoryDocument>,
+  constructor(
+      @InjectModel(Category.name)
+      private readonly categoryModel: Model<CategoryDocument>,
 
-        @InjectModel(Product.name)
-        private readonly productModel: Model<ProductDocument>,
+      @InjectModel(Product.name)
+      private readonly productModel: Model<ProductDocument>,
 
-    ){}
+  ){}
+
+  async getAll(){
+    const categories = await this.categoryModel
+      .find({status: 'active'})
+      .lean();
+
+    return categories;
+  }
+
 
   async create(dto: CreateCategoryDto) {
     try {
-        return await this.categoryModel.create(dto);
+      let slug = toSlug(dto.name);
+
+      const exists = await this.categoryModel.findOne({ slug });
+      if (exists) {
+        slug = `${slug}-${Date.now()}`;
+      }
+
+      return await this.categoryModel.create({
+        ...dto,
+        slug,
+      });
+
     } catch (error) {
-        throw mapMongoError(error);
+      throw mapMongoError(error);
     }
   }
 
-    async update(id: string, dto: UpdateCategoryDto) {
+
+  async update(id: string, dto: UpdateCategoryDto) {
 
 
-        const category = await this.categoryModel.findById(id);
+      const category = await this.categoryModel.findById(id);
 
-        if (!category) {
-        throw new RpcException({
-            statusCode: 404,
-            message: 'Categoría no encontrada',
-        });
-        }
+      if (!category) {
+      throw new RpcException({
+          statusCode: 404,
+          message: 'Categoría no encontrada',
+      });
+      }
 
-        try {
-        Object.assign(category, dto);
-        await category.save();
+      try {
+      Object.assign(category, dto);
+      await category.save();
 
-        return {
-            id: category.id,
-            name: category.name,
-            description: category.description,
-        };
-        } catch (error) {
-        // Mongo duplicate key
-        if (error.code === 11000) {
-            throw new RpcException({
-            statusCode: 409,
-            message: 'Ya existe una categoría con ese nombre',
-            });
-        }
+      return {
+          id: category.id,
+          name: category.name,
+          description: category.description,
+      };
+      } catch (error) {
+      // Mongo duplicate key
+      if (error.code === 11000) {
+          throw new RpcException({
+          statusCode: 409,
+          message: 'Ya existe una categoría con ese nombre',
+          });
+      }
 
-        throw new RpcException({
-            statusCode: 500,
-            message: 'Error al actualizar la categoría',
-        });
-        }
-    }
+      throw new RpcException({
+          statusCode: 500,
+          message: 'Error al actualizar la categoría',
+      });
+      }
+  }
 
 
   async delete(id: string) {
@@ -95,4 +117,6 @@ export class CategoriesService {
       throw mapMongoError(error);
     }
   }
+
+
 }

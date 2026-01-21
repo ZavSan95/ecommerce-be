@@ -5,7 +5,6 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { catchError, firstValueFrom } from 'rxjs';
 
-
 @Injectable()
 export class ProductService {
   constructor(
@@ -13,10 +12,30 @@ export class ProductService {
     private readonly natsClient: ClientProxy,
   ) {}
 
+  async getAll() {
+    return firstValueFrom(
+      this.natsClient.send('products.getAll', {}).pipe(
+        catchError(error => {
+          throw error;
+        }),
+      ),
+    );
+  }
+
+  async getBySlug(id: string) {
+    return firstValueFrom(
+      this.natsClient.send('products.get.slug', id).pipe(
+        catchError(error => {
+          throw error;
+        }),
+      ),
+    );
+  }
+
   async create(dto: CreateProductDto) {
     return firstValueFrom(
       this.natsClient.send('products.create', dto).pipe(
-        catchError((error) => {
+        catchError(error => {
           throw error;
         }),
       ),
@@ -24,25 +43,25 @@ export class ProductService {
   }
 
   async patch(id: string, dto: UpdateProductDto) {
-    return await firstValueFrom(
-      this.natsClient.send(
-        'products.update',
-        {
-          id,
-          data: dto,
-        },
+    return firstValueFrom(
+      this.natsClient.send('products.update', {
+        id,
+        data: dto,
+      }).pipe(
+        catchError(error => {
+          throw error;
+        }),
       ),
     );
   }
 
-  async delete(params: ProductIdParamDto){
-    return await firstValueFrom(
-      this.natsClient.send(
-        'products.delete',
-        params
+  async delete(params: ProductIdParamDto) {
+    return firstValueFrom(
+      this.natsClient.send('products.delete', params).pipe(
+        catchError(error => {
+          throw error;
+        }),
       ),
     );
   }
-
-
 }

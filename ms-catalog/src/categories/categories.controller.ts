@@ -24,5 +24,10 @@ export class CategoriesController {
     return this.categoriesService.delete(id);
   }
 
+  @MessagePattern('categories.getAll')
+  async getAll(){
+    return this.categoriesService.getAll();
+  }
+
 
 }

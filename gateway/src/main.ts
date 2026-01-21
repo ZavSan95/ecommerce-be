@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'; 
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import * as express from 'express';
+import { join } from 'path';
 
 async function bootstrap() { 
   
@@ -23,7 +25,17 @@ async function bootstrap() {
     .addBearerAuth() // para JWT más adelante 
     .build(); 
 
+  app.use(
+    '/uploads',
+    express.static(join(process.cwd(), 'uploads')),
+  );
+
   app.use(cookieParser());
+
+  app.enableCors({
+    origin: "http://localhost:3001", // 👈 frontend Next
+    credentials: true,
+  });
     
   const document = SwaggerModule.createDocument(app, config); 
   
