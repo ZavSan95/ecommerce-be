@@ -34,7 +34,7 @@ export class ProductsService {
     return products;
   }
 
-  async getBySlug(slug: string) {
+  async getBySlugCategory(slug: string) {
 
     const category = await this.categoryModel
       .findOne({ status: 'active', slug })
@@ -55,6 +55,24 @@ export class ProductsService {
       .lean();
 
     return products;
+  }
+
+  async getBySlugProduct(slug: string) {
+
+    const product = await this.productModel
+      .findOne({
+        status: 'active',
+        'variants.sku': slug,
+      })
+      .lean();
+
+    const variant = product?.variants.find(v => v.sku === slug);
+
+    return {
+      ...product,
+      variants: [variant],
+    };
+
   }
 
   async create(dto: CreateProductDto) {

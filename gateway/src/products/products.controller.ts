@@ -33,13 +33,22 @@ export class ProductsController {
   }
 
   // ---------------------------
-  // GET BY SLUG / ID
+  // GET PRODUCTS BY CATEGORY SLUG
   // ---------------------------
   @Public()
-  @Get(':id')
-  async getBySlug(@Param('id') id: string) {
-    return this.productService.getBySlug(id);
+  @Get('category/:slug')
+  async getByCategorySlug(@Param('slug') slug: string) {
+    return this.productService.getByCategorySlug(slug);
   }
+
+  // ---------------------------
+  // GET PRODUCT BY PRODUCT SLUG (SKU)
+  // ---------------------------
+  @Public()
+  @Get('slug/:slug')
+  async getByProductSlug(@Param('slug') slug: string) {
+    return this.productService.getByProductSlug(slug);
+}
 
   // ---------------------------
   // CREATE PRODUCT

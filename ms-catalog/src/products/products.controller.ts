@@ -34,7 +34,14 @@ export class ProductsController {
   }
 
   @MessagePattern('products.get.slug')
-  async getBySlug(@Payload() slug: string) {
-    return this.productsService.getBySlug(slug);
+  async getBySlugCategory(@Payload() slug: string) {
+    return this.productsService.getBySlugCategory(slug);
   }
+
+  @MessagePattern('products.get.slug.product')
+  async getBySlugProduct(@Payload() slug: string) {
+    return this.productsService.getBySlugProduct(slug);
+  }
+
+  
 }

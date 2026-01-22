@@ -22,9 +22,19 @@ export class ProductService {
     );
   }
 
-  async getBySlug(id: string) {
+  async getByCategorySlug(id: string) {
     return firstValueFrom(
       this.natsClient.send('products.get.slug', id).pipe(
+        catchError(error => {
+          throw error;
+        }),
+      ),
+    );
+  }
+
+  async getByProductSlug(id: string) {
+    return firstValueFrom(
+      this.natsClient.send('products.get.slug.product', id).pipe(
         catchError(error => {
           throw error;
         }),
