@@ -6,6 +6,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 
+
 @Controller()
 export class AuthController {
   constructor(
@@ -32,5 +33,10 @@ export class AuthController {
     return this.authService.logout(dto);
   }
 
+  @MessagePattern('auth.me')
+  me(@Payload() { accessToken }: { accessToken: string } ){
+    return this.authService.me(accessToken);
+  }
+  
 
 }

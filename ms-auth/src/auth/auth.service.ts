@@ -188,6 +188,30 @@ export class AuthService {
     return { success: true };
     }
 
+    async me(accessToken: string) {
+        try {
+            const payload = this.jwtService.verify(accessToken);
+
+            const user = await this.userModel.findById(payload.sub).select(
+            'email name roles',
+            );
+
+            if (!user) {
+            throw new UnauthorizedException();
+            }
+
+            return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            roles: user.roles,
+            };
+
+        } catch {
+            throw new UnauthorizedException();
+        }
+    }
+
 
 
 

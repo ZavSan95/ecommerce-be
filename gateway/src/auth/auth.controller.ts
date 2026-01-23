@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -14,6 +14,72 @@ export class AuthController {
     @Inject('NATS_CLIENT')
     private readonly natsClient: ClientProxy,
   ) {}
+
+  @Get('me')
+  async me(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+
+    const accessToken = req.cookies?.access_token;
+    const refreshToken = req.cookies?.refresh_token;
+
+    // ❌ No hay ningún token
+    if (!accessToken && !refreshToken) {
+      throw new UnauthorizedException();
+    }
+
+    try {
+      // 🟢 Intentamos validar access token
+      const user = await firstValueFrom(
+        this.natsClient.send('auth.me', { accessToken }),
+      );
+
+      return { user };
+
+    } catch (error) {
+
+      // 🔁 Access token inválido → intentamos refresh
+      if (!refreshToken) {
+        throw new UnauthorizedException();
+      }
+
+      try {
+        const refreshResult = await firstValueFrom(
+          this.natsClient.send('auth.refresh', { refreshToken }),
+        );
+
+        // 🔐 Seteamos nuevos tokens
+        res.cookie('access_token', refreshResult.accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 15 * 60 * 1000,
+        });
+
+        res.cookie('refresh_token', refreshResult.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        // 🔄 Volvemos a pedir el user con el nuevo access token
+        const user = await firstValueFrom(
+          this.natsClient.send('auth.me', {
+            accessToken: refreshResult.accessToken,
+          }),
+        );
+
+        return { user };
+
+      } catch {
+        // ❌ Refresh también falló → logout lógico
+        throw new UnauthorizedException();
+      }
+    }
+  }
+
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
@@ -97,4 +163,5 @@ export class AuthController {
 
     return { success: true };
   }
+
 }
