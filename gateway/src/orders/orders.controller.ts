@@ -6,10 +6,14 @@ import {
   Query,
   BadRequestException,
   Body,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout } from 'rxjs';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { Public } from '../auth/decorators/public.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('orders')
 export class OrdersController {
@@ -89,5 +93,19 @@ export class OrdersController {
       orderId,
       message: 'Pago pendiente de confirmación',
     };
+  }
+
+  // ==========================
+  //  My Orders
+  // ==========================
+  @Get('my')
+  async getMyOrders(@Req() req){
+    const userId = req.user.id;
+
+    return firstValueFrom(
+      this.natsClient.send('orders.my', {
+        userId,
+      }),
+    );
   }
 }

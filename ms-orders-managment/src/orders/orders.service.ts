@@ -260,4 +260,21 @@ export class OrdersService {
         console.log(`✅ Orden ${payload.orderId} marcada como PAID`);
     }
 
+    async getMyOrders(userId: string){
+        const orders = await this.prisma.order.findMany({
+            where: {
+                customerId: userId,
+            },
+            orderBy: {
+                createdAt: 'asc',
+            },
+            include: {
+                items: true,
+                payments: true,
+            },
+        });
+
+        return orders;
+    }
+
 }

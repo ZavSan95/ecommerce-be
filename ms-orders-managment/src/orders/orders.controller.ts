@@ -27,5 +27,10 @@ export class OrdersController {
 
     await this.ordersService.confirmPayment(payload);
   }
+
+  @MessagePattern('orders.my')
+  async getMyOrders(@Payload() data: { userId: string }){
+    return this.ordersService.getMyOrders(data.userId);
+  }
   
 }
