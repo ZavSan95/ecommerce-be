@@ -8,6 +8,7 @@ import {
   Body,
   Req,
   UseGuards,
+  Param,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout } from 'rxjs';
@@ -25,11 +26,32 @@ export class OrdersController {
   // ==========================
   // 1️⃣ Checkout
   // ==========================
+  // @Post('checkout')
+  // async checkout(@Body() dto: CreateOrderDto) {
+  //   return firstValueFrom(
+  //     this.natsClient
+  //       .send('orders.checkout.create', dto)
+  //       .pipe(timeout(5000)),
+  //   );
+  // }
+
   @Post('checkout')
-  async checkout(@Body() dto: CreateOrderDto) {
+  async checkout(@Body() dto: Omit<CreateOrderDto, 'customerId' | 'customerEmail' | 'customerName'>, @Req() req: any) {
+    const user = req.user; // { id, email, ... }
+
+    const payload: CreateOrderDto = {
+      ...dto,
+      customerId: user.userId,
+      customerEmail: user.email,
+      customerName: user.email, // o user.name si lo tenés
+    };
+
+    console.log(user);
+    console.log(payload);
+
     return firstValueFrom(
       this.natsClient
-        .send('orders.checkout.create', dto)
+        .send('orders.checkout.create', payload)
         .pipe(timeout(5000)),
     );
   }
@@ -108,4 +130,22 @@ export class OrdersController {
       }),
     );
   }
+
+  // ==========================
+  //  Orders by ID
+  // ==========================
+
+  @Get('order/:id')
+  async getOrderById(
+    @Param('id') orderId: string,
+    @Req() req: any
+  ){
+    const userId = req.user.id;
+
+    return this.natsClient.send('orders.order',{
+      userId,
+      orderId
+    });
+  }
+
 }

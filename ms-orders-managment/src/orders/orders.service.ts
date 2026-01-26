@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CheckoutResponseDto } from './dto/checkout-response.dto';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { timeout, firstValueFrom } from 'rxjs';
 import { CheckoutValidatedItem, CheckoutValidationResponse } from './types/products.types';
 import { OrderItemInput } from './types/order-item.type';
@@ -32,14 +32,21 @@ export class OrdersService {
 
             return response;
         } catch {
-            throw new BadRequestException('No se pudo validar el carrito');
+            throw new RpcException({
+                statusCode: 400,
+                message: 'No se pudo validar el carrito',
+            });
         }
     }
 
     async createOrder(dto: CreateOrderDto): Promise<CheckoutResponseDto>{
 
+        console.log('🟢 createOrder DTO:', dto);
+
         const validation: CheckoutValidationResponse =
             await this.validateProducts(dto.items);
+
+        console.log('🟢 Validation:', validation);
 
         if(!validation?.items || validation.items.length === 0){
             throw new BadRequestException('Carrito inválido');
@@ -90,6 +97,8 @@ export class OrdersService {
         // 3. Persistencia con Prisma
         // =====================================================
 
+        console.log('🟢 OrderItems:', orderItems);
+
         const order = await this.prisma.order.create({
             data: {
             orderNumber: `ORD-${Date.now()}`,
@@ -137,12 +146,18 @@ export class OrdersService {
                 },
         });
 
+        console.log('🟢 Order creada:', order.id);
         // =====================================================
         // 4. Llamado a Payments-ms
         // =====================================================
         const payment = order.payments[0];
 
         let paymentInit;
+
+        console.log('🟢 Enviando a payments:', {
+            orderId: order.id,
+            provider: dto.paymentProvider,
+        });
         
         try {
 
@@ -217,10 +232,13 @@ export class OrdersService {
             provider: payment.provider,
             status: payment.status,
             amount: payment.amount.toNumber(),
+            checkoutUrl: paymentInit.checkoutUrl,              // ✅
+            providerPaymentId: paymentInit.providerPaymentId,  // ✅ opcional
         },
 
         expiresAt: new Date(Date.now() + 15 * 60 * 1000),
         };
+
 
     }
 
@@ -275,6 +293,22 @@ export class OrdersService {
         });
 
         return orders;
+    }
+
+    async getOrderById(data: { userId: string, orderId: string}){
+
+        const order = await this.prisma.order.findUnique({
+            where: {
+                customerId: data.userId,
+                id: data.orderId,
+            },
+            include: {
+                items: true,
+                payments: true,
+            },
+        });
+
+        return order;
     }
 
 }

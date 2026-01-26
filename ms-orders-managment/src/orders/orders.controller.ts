@@ -10,7 +10,8 @@ export class OrdersController {
 
   @MessagePattern('orders.checkout.create')
   createOrder(@Payload() dto: CreateOrderDto) {
-    return this.ordersService.createOrder(dto);
+    console.log('DTO OK:', dto);
+    return this.ordersService.createOrder(dto); 
   }
 
   @EventPattern('payments.confirmed')
@@ -31,6 +32,11 @@ export class OrdersController {
   @MessagePattern('orders.my')
   async getMyOrders(@Payload() data: { userId: string }){
     return this.ordersService.getMyOrders(data.userId);
+  }
+
+  @MessagePattern('orders.order')
+  async getOrderById(@Payload() data: { userId: string, orderId: string }){
+    return this.ordersService.getOrderById(data);
   }
   
 }

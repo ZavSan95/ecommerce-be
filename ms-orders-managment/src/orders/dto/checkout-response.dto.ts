@@ -20,6 +20,8 @@ export class CheckoutResponseDto {
     provider: PaymentProvider;
     status: PaymentStatus;
     amount: number;
+    checkoutUrl?: string;   // ✅
+    providerPaymentId?: string; // ✅ opcional
   };
 
   expiresAt?: Date;

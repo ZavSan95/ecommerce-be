@@ -18,6 +18,7 @@ export class PrismaService
         port: 3306,
       }),
     });
+
   }
 
   async onModuleInit() {

@@ -1,0 +1,41 @@
+services:
+  nats:
+    image: nats:2.10
+    container_name: ecommerce-nats
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222" # monitoreo opcional
+
+  mysql-orders:
+    image: mysql:8.4
+    container_name: mysql-orders
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: orders_db
+      MYSQL_USER: orders_user
+      MYSQL_PASSWORD: orders_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_orders_data:/var/lib/mysql
+      - ./mysql/public_key.pem:/etc/mysql/public_key.pem:ro
+
+  mysql-invoices:
+    image: mysql:8.4
+    container_name: mysql-invoices
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: invoices_db
+      MYSQL_USER: invoices_user
+      MYSQL_PASSWORD: invoices_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_invoices_data:/var/lib/mysql
+
+volumes:
+  mysql_orders_data:
+  mysql_invoices_data:

@@ -1,5 +1,6 @@
-import { OrderStatus, PaymentProvider, PaymentStatus } from "@prisma/client";
-
+import { OrderStatus } from "../enum/order-status.enum";
+import { PaymentProvider } from "../enum/payment-provider.enum";
+import { PaymentStatus } from "../enum/payment-status.enum";
 
 export class CheckoutResponseDto {
   orderId: string;
@@ -20,6 +21,8 @@ export class CheckoutResponseDto {
     provider: PaymentProvider;
     status: PaymentStatus;
     amount: number;
+    checkoutUrl?: string;   // ✅
+    providerPaymentId?: string; // ✅ opcional
   };
 
   expiresAt?: Date;

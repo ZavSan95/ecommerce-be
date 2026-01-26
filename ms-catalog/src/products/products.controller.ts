@@ -4,6 +4,7 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
+import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
 
 @Controller()
 export class ProductsController {
@@ -41,6 +42,11 @@ export class ProductsController {
   @MessagePattern('products.get.slug.product')
   async getBySlugProduct(@Payload() slug: string) {
     return this.productsService.getBySlugProduct(slug);
+  }
+
+  @MessagePattern('products.checkout.validate')
+  async validateForCheckout(@Payload() dto: ValidateCheckoutDto) {
+    return this.productsService.validateForCheckout(dto);
   }
 
   
