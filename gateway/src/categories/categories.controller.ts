@@ -12,7 +12,7 @@ export class CategoriesController {
     private readonly categoriesService: CategoriesService
   ) {}
 
-  // @Public()
+  @Public()
   @Get()
   async getAll(){
     return this.categoriesService.getAll();
