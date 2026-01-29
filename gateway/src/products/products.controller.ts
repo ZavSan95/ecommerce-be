@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 
 import { CreateProductDto } from './dto/create-product.dto';
@@ -15,6 +16,7 @@ import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { mapAxiosError } from '../common/utils/http-error.mapper';
 import { ProductService } from './products.service';
 import { Public } from '../auth/decorators/public.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('catalog/products')
 export class ProductsController {
@@ -28,8 +30,8 @@ export class ProductsController {
   // ---------------------------
   @Public()
   @Get()
-  async getAll() {
-    return this.productService.getAll();
+  async getAll(@Query() pagination: PaginationDto) {
+    return this.productService.getAll(pagination);
   }
 
   // ---------------------------

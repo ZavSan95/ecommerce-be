@@ -4,6 +4,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreateCategoryDto } from './dto/create-category-dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { UpdateCategoryPayloadDto } from './dto/payload-category.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller()
 export class CategoriesController {
@@ -25,8 +26,8 @@ export class CategoriesController {
   }
 
   @MessagePattern('categories.getAll')
-  async getAll(){
-    return this.categoriesService.getAll();
+  async getAll(pagination: PaginationDto){
+    return this.categoriesService.getAll(pagination);
   }
 
 

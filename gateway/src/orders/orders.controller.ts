@@ -15,6 +15,7 @@ import { firstValueFrom, timeout } from 'rxjs';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -22,18 +23,6 @@ export class OrdersController {
     @Inject('NATS_CLIENT')
     private readonly natsClient: ClientProxy,
   ) {}
-
-  // ==========================
-  // 1️⃣ Checkout
-  // ==========================
-  // @Post('checkout')
-  // async checkout(@Body() dto: CreateOrderDto) {
-  //   return firstValueFrom(
-  //     this.natsClient
-  //       .send('orders.checkout.create', dto)
-  //       .pipe(timeout(5000)),
-  //   );
-  // }
 
   @Post('checkout')
   async checkout(@Body() dto: Omit<CreateOrderDto, 'customerId' | 'customerEmail' | 'customerName'>, @Req() req: any) {
@@ -146,6 +135,14 @@ export class OrdersController {
       userId,
       orderId
     });
+  }
+
+  @Public()
+  @Get()
+  async getAll(@Query() pagination: PaginationDto){
+    return firstValueFrom(
+      this.natsClient.send('orders.all', pagination)
+    );
   }
 
 }

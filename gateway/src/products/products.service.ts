@@ -4,6 +4,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { catchError, firstValueFrom } from 'rxjs';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class ProductService {
@@ -12,9 +13,9 @@ export class ProductService {
     private readonly natsClient: ClientProxy,
   ) {}
 
-  async getAll() {
+  async getAll(pagination: PaginationDto) {
     return firstValueFrom(
-      this.natsClient.send('products.getAll', {}).pipe(
+      this.natsClient.send('products.getAll', pagination).pipe(
         catchError(error => {
           throw error;
         }),

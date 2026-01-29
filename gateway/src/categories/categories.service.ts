@@ -3,6 +3,7 @@
   import { CreateCategoryDto } from './dto/create-category.dto';
   import { UpdateCategoryDto } from './dto/update-category.dto';
 import { catchError, firstValueFrom } from 'rxjs';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 
   @Injectable()
@@ -12,9 +13,9 @@ import { catchError, firstValueFrom } from 'rxjs';
       private readonly natsClient: ClientProxy,
     ) {}
 
-    async getAll(){
+    async getAll(pagination: PaginationDto){
       return await firstValueFrom(
-        this.natsClient.send('categories.getAll', {}).pipe(
+        this.natsClient.send('categories.getAll', pagination).pipe(
           catchError((error) => {
             throw error;
           }),

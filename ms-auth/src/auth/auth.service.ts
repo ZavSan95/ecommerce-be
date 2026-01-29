@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshResponse } from './interfaces/refresh-response.interface';
 import { LogoutDto } from './dto/logout.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class AuthService {
@@ -210,6 +211,47 @@ export class AuthService {
         } catch {
             throw new UnauthorizedException();
         }
+    }
+
+    async getAll({ page = 1, limit = 20, sort, search }: PaginationDto){
+
+        const query: any = { isActive: true };
+
+        if(search){
+            query.$or = [
+                { name: new RegExp(search, 'i') },
+                { email: new RegExp(search, 'i') },
+            ];
+        }
+
+        const sortOptions = {};
+        if (sort) {
+        const [field, order] = sort.split(':');
+        sortOptions[field] = order === 'desc' ? -1 : 1;
+        }
+
+        const skip = (page - 1) * limit;
+
+        const [data, total] = await Promise.all([
+            this.userModel
+                .find(query)
+                .select('_id email name roles permissions isActive createdAt updatedAt')
+                .sort(sortOptions)
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            this.userModel.countDocuments(query),
+        ]);
+
+        return {
+            data,
+            meta: {
+                totalItems: total,
+                itemsPerPage: limit,
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
 

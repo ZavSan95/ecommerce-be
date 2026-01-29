@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 
 @Controller()
@@ -36,6 +37,11 @@ export class AuthController {
   @MessagePattern('auth.me')
   me(@Payload() { accessToken }: { accessToken: string } ){
     return this.authService.me(accessToken);
+  }
+
+  @MessagePattern('auth.users')
+  async getAll(pagination: PaginationDto){
+    return this.authService.getAll(pagination);
   }
   
 

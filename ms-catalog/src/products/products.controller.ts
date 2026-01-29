@@ -5,6 +5,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Controller()
 export class ProductsController {
@@ -30,8 +31,8 @@ export class ProductsController {
   }
 
   @MessagePattern('products.getAll')
-  async getAll() {
-    return this.productsService.getAll();
+  async getAll(pagination: PaginationDto) {
+    return this.productsService.getAll(pagination);
   }
 
   @MessagePattern('products.get.slug')

@@ -7,6 +7,8 @@ import { CheckoutValidatedItem, CheckoutValidationResponse } from './types/produ
 import { OrderItemInput } from './types/order-item.type';
 import { PrismaService } from '../database/prisma.service';
 import { PaymentProvider } from '@prisma/client';
+import { PaginationDto } from './dto/pagination.dto';
+import { contains } from 'class-validator';
 
 @Injectable()
 export class OrdersService {
@@ -309,6 +311,85 @@ export class OrdersService {
         });
 
         return order;
+    }
+
+    async getAll({ page = 1, limit = 20, sort, search }: PaginationDto){
+        
+        const take = Math.min(limit, 100);
+        const skip = (page - 1 ) * take;
+
+        const where: any = {};
+
+        if(search){
+            where.OR = [
+                { orderNumber: { contains: search } },
+                { customerEmail: { contains: search } },
+                { customerName: { contains: search } },
+            ];
+        }
+
+        let orderBy : any = { createdAt: 'desc' };
+
+        if(sort){
+
+            const [field, directionRaw] = sort.split(':');
+            const direction = directionRaw?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+            // 🔒 whitelist de campos ordenables
+            const allowedSortFields = new Set([
+            'createdAt',
+            'orderNumber',
+            'status',
+            'totalAmount',
+            ]);
+
+            if (allowedSortFields.has(field)) {
+            orderBy = { [field]: direction };
+            }
+        }
+
+        const [data, totalItems] = await Promise.all([
+            this.prisma.order.findMany({
+            where,
+            orderBy,
+            skip,
+            take,
+
+            select: {
+                id: true,
+                orderNumber: true,
+                status: true,
+                currency: true,
+                totalAmount: true,
+                customerId: true,
+                customerEmail: true,
+                customerName: true,
+                createdAt: true,
+
+                payments: {
+                select: {
+                    provider: true,
+                    status: true,
+                    amount: true,
+                },
+                },
+            },
+            }),
+
+            this.prisma.order.count({ where }),
+        ]);
+
+        return {
+            data,
+            meta: {
+                totalItems,
+                itemsPerPage: take,
+                currentPage: page,
+                totalPages: Math.ceil(totalItems / take),
+                sort: sort ?? null,
+                search: search ?? null,
+            },
+        };
     }
 
 }

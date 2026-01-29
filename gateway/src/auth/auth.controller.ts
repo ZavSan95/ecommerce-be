@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -6,6 +6,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Public } from './decorators/public.decorator';
 import { Request, Response } from 'express'; // 👈 ESTO ES CLAVE
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('auth')
 @Public()
@@ -162,6 +163,13 @@ export class AuthController {
     res.clearCookie('refresh_token');
 
     return { success: true };
+  }
+
+  @Get('users')
+  async getAll(@Query() pagination: PaginationDto){
+    return firstValueFrom(
+      this.natsClient.send('auth.users', pagination),
+    );
   }
 
 }

@@ -44,7 +44,7 @@ CREATE TABLE `OrderPayment` (
     `orderId` VARCHAR(191) NOT NULL,
     `provider` ENUM('mercadopago', 'stripe', 'paypal', 'cash') NOT NULL,
     `providerPaymentId` VARCHAR(191) NULL,
-    `status` ENUM('pending', 'approved', 'rejected', 'refunded') NOT NULL,
+    `status` ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL,
     `amount` DECIMAL(12, 2) NOT NULL,
     `payload` JSON NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

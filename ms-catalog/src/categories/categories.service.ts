@@ -8,6 +8,7 @@ import { mapMongoError } from 'src/common/errors/mongo-error.mapper';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { RpcException } from '@nestjs/microservices';
 import { toSlug } from 'src/common/utils/slug.util';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 
 @Injectable()
@@ -22,12 +23,46 @@ export class CategoriesService {
 
   ){}
 
-  async getAll(){
-    const categories = await this.categoryModel
-      .find({status: 'active'})
-      .lean();
+  async getAll({ page = 1, limit = 20, sort, search }: PaginationDto){
 
-    return categories;
+    const query: any = { status: 'active' };
+
+    if(search){
+      query.$or = [
+        { name: new RegExp(search, 'i') },
+        { description: new RegExp(search, 'i') },
+      ];
+    }
+    
+    const sortOptions = {};
+    if (sort) {
+      const [field, order] = sort.split(':');
+      sortOptions[field] = order === 'desc' ? -1 : 1;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.categoryModel
+        .find(query)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.categoryModel.countDocuments(query),
+    ]);
+
+    return {
+      data,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+
+
   }
 
 

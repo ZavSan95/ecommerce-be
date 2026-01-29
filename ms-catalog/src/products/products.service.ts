@@ -16,6 +16,7 @@ import { Category, CategoryDocument } from 'src/categories/schemas/category.sche
 import { CategoryStatus } from 'src/categories/enum/category-status.enum';
 import { RpcException } from '@nestjs/microservices';
 import { CatalogErrors } from 'src/common/errors/error-codes';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class ProductsService {
@@ -26,13 +27,81 @@ export class ProductsService {
     private readonly categoryModel: Model<CategoryDocument>,
   ) {}
 
-  async getAll() {
-    const products = await this.productModel
-      .find({ status: 'active' })
-      .lean();
 
-    return products;
+  async getAll({
+    page = 1,
+    limit = 20,
+    sort,
+    search
+  }: PaginationDto) {
+
+    /* =============================
+    * 1️⃣ Query base
+    * ============================= */
+    const query: any = {
+      status: 'active',
+    };
+
+    /* =============================
+    * 2️⃣ Search (nombre + SKU)
+    * ============================= */
+    if (search) {
+      const regex = new RegExp(search, 'i');
+
+      query.$or = [
+        { name: regex },
+        { 'variants.sku': regex },
+      ];
+    }
+
+
+    /* =============================
+    * 4️⃣ Sort
+    * ============================= */
+    const sortOptions: Record<string, 1 | -1> = {};
+
+    if (sort) {
+      const [field, order] = sort.split(':');
+      sortOptions[field] = order === 'desc' ? -1 : 1;
+    } else {
+      // default sort (muy importante en ecommerce)
+      sortOptions.createdAt = -1;
+    }
+
+    /* =============================
+    * 5️⃣ Paginación
+    * ============================= */
+    const skip = (page - 1) * limit;
+
+    /* =============================
+    * 6️⃣ Queries en paralelo
+    * ============================= */
+    const [data, total] = await Promise.all([
+      this.productModel
+        .find(query)
+        .populate('categoryId', 'name')
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      this.productModel.countDocuments(query),
+    ]);
+
+    /* =============================
+    * 7️⃣ Response estándar
+    * ============================= */
+    return {
+      data,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
+
 
   async getBySlugCategory(slug: string) {
 

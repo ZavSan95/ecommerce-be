@@ -8,7 +8,7 @@ services:
       - "8222:8222" # monitoreo opcional
 
   mysql-orders:
-    image: mysql:8.4
+    image: mysql:8.0
     container_name: mysql-orders
     restart: unless-stopped
     environment:
@@ -23,7 +23,7 @@ services:
       - ./mysql/public_key.pem:/etc/mysql/public_key.pem:ro
 
   mysql-invoices:
-    image: mysql:8.4
+    image: mysql:8.0
     container_name: mysql-invoices
     restart: unless-stopped
     environment:

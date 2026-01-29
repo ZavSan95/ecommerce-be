@@ -3,6 +3,7 @@ import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PaymentProvider } from '@prisma/client';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller()
 export class OrdersController {
@@ -37,6 +38,11 @@ export class OrdersController {
   @MessagePattern('orders.order')
   async getOrderById(@Payload() data: { userId: string, orderId: string }){
     return this.ordersService.getOrderById(data);
+  }
+
+  @MessagePattern('orders.all')
+  async getAll(pagination: PaginationDto){
+    return this.ordersService.getAll(pagination);
   }
   
 }
