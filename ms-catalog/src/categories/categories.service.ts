@@ -9,6 +9,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { RpcException } from '@nestjs/microservices';
 import { toSlug } from 'src/common/utils/slug.util';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CategoryStatus } from './enum/category-status.enum';
 
 
 @Injectable()
@@ -65,6 +66,29 @@ export class CategoriesService {
 
   }
 
+  async getById(id: string) {
+    try {
+      const category = await this.categoryModel
+        .findById(id)
+        .lean();
+
+      if (!category) {
+        throw new RpcException({
+            statusCode: 404,
+            message: 'Categoría no encontrada',
+        });
+      }
+
+      return category;
+
+    } catch (error) {
+      throw new RpcException({
+          statusCode: 404,
+          message: 'Error al obtener categoría',
+      });
+    }
+  }
+
 
   async create(dto: CreateCategoryDto) {
     try {
@@ -98,6 +122,24 @@ export class CategoriesService {
       });
       }
 
+      if (dto.name && dto.name !== category.name) {
+
+        let slug = toSlug(dto.name);
+
+        // Buscar si existe otro con ese slug (excluyendo el actual)
+        const exists = await this.categoryModel.findOne({
+          slug,
+          _id: { $ne: id },
+        });
+
+        if (exists) {
+          slug = `${slug}-${Math.floor(Math.random() * 1000)}`;
+        }
+
+        category.slug = slug;
+        category.name = dto.name;
+      }
+
       try {
       Object.assign(category, dto);
       await category.save();
@@ -129,18 +171,25 @@ export class CategoriesService {
       const category = await this.categoryModel.findById(id);
 
       if (!category) {
-        throw new NotFoundException('Categoría no encontrada');
+        throw new RpcException({
+          statusCode: 404,
+          message: 'Categoría no encontrada',
+        });
       }
 
       const productsCount = await this.productModel.countDocuments({
-        categoryId: category._id,
+        categoryId: id,
       });
 
       if (productsCount > 0) {
-        throw new BadRequestException(
-          'No se puede eliminar la categoría porque tiene productos asociados',
-        );
+        throw new RpcException({
+          statusCode: 400,
+          message:
+            'No se puede eliminar la categoría porque tiene productos asociados',
+        });
       }
+
+
 
       await category.deleteOne();
 
@@ -149,9 +198,39 @@ export class CategoriesService {
         id,
       };
     } catch (error) {
+      // Si ya es RpcException, re-lanzar
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
       throw mapMongoError(error);
     }
   }
+
+  async toggleStatus(id: string) {
+    const category = await this.categoryModel.findById(id);
+
+    if (!category) {
+      throw new RpcException({
+        statusCode: 404,
+        message: 'Categoría no encontrada',
+      });
+    }
+
+    category.status =
+      category.status === CategoryStatus.ACTIVE
+        ? CategoryStatus.INACTIVE
+        : CategoryStatus.ACTIVE;
+
+    await category.save();
+
+    return {
+      id: category.id,
+      status: category.status,
+    };
+  }
+
+
 
 
 }

@@ -19,6 +19,11 @@ export class CategoriesController {
     return this.categoriesService.getAll(pagination);
   }
 
+  @Get(':id')
+  async getById(@Param('id') id: string){
+    return this.categoriesService.getById(id);
+  }
+
   @Post()
   create(@Body() dto: CreateCategoryDto) {
     return this.categoriesService.create(dto);
@@ -30,6 +35,13 @@ export class CategoriesController {
     @Body() dto: UpdateCategoryDto,
   ){
     return this.categoriesService.update(id, dto);
+  }
+
+  @Patch(':id/status')
+  toggleStatus(
+    @Param('id') id: string
+  ){
+    return this.categoriesService.toggleStatus(id);
   }
 
   @Delete(':id')

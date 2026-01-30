@@ -23,6 +23,16 @@ import { PaginationDto } from '../common/dto/pagination.dto';
       );
     }
 
+    async getById(id: string){
+      return await firstValueFrom(
+        this.natsClient.send('category.by.id', id).pipe(
+          catchError((error) => {
+            throw error;
+          }),
+        ),
+      );
+    }
+
     async create(dto: CreateCategoryDto) {
       
       return this.natsClient.send(
@@ -46,6 +56,13 @@ import { PaginationDto } from '../common/dto/pagination.dto';
         'categories.delete', {
           id,
         }
+      );
+    }
+
+    async toggleStatus(id: string) {
+      return this.natsClient.send(
+        'categories.update.status',
+        id 
       );
     }
 

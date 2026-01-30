@@ -30,5 +30,15 @@ export class CategoriesController {
     return this.categoriesService.getAll(pagination);
   }
 
+  @MessagePattern('category.by.id')
+  async getById(id: string){
+    return this.categoriesService.getById(id);
+  }
+
+  @MessagePattern('categories.update.status')
+  async toggleStatus(id: string){
+    return this.categoriesService.toggleStatus(id);
+  }
+
 
 }
