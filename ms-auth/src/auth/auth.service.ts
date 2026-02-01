@@ -254,6 +254,17 @@ export class AuthService {
         };
     }
 
+    async verifyUser(id: string){
+        
+        const user = this.userModel.findById(id);
+
+        if(!user){
+            return false;
+        }
+
+        return true;
+    }
+
 
 
 

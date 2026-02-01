@@ -10,6 +10,7 @@ import { RpcException } from '@nestjs/microservices';
 import { toSlug } from 'src/common/utils/slug.util';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CategoryStatus } from './enum/category-status.enum';
+import { CategoryErrors } from 'src/common/errors/error-codes';
 
 
 @Injectable()
@@ -104,9 +105,9 @@ export class CategoriesService {
         slug,
       });
 
-    } catch (error) {
-      throw mapMongoError(error);
-    }
+      }catch (error) {
+        throw mapMongoError(error, CategoryErrors.CATEGORY_CREATE_FAILED);
+      }
   }
 
 
@@ -197,13 +198,12 @@ export class CategoriesService {
         message: 'Categoría eliminada correctamente',
         id,
       };
-    } catch (error) {
-      // Si ya es RpcException, re-lanzar
+    }catch (error) {
       if (error instanceof RpcException) {
         throw error;
       }
 
-      throw mapMongoError(error);
+      throw mapMongoError(error, CategoryErrors.CATEGORY_DELETE_FAILED);
     }
   }
 

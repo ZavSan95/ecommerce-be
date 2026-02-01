@@ -43,6 +43,11 @@ export class AuthController {
   async getAll(pagination: PaginationDto){
     return this.authService.getAll(pagination);
   }
+
+  @MessagePattern('user.verify')
+  async verifyUser(@Payload() dto: string){
+    return this.authService.verifyUser(dto);
+  }
   
 
 }

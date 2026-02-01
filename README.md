@@ -16,9 +16,20 @@ MS-ORDERS-MANAGMENT
         INDEX,
         REFERENCES
         ON *.*
-        TO 'invoices_user'@'%';
+        TO 'orders_user'@'%';
 
         FLUSH PRIVILEGES;
         -exit;
 
 -REMOVER ARCHIVOS GIT MS NUEVO Remove-Item -Recurse -Force .git
+
+
+#SOLUCIONAR PROBLEMAS RSA PUBLIC KEY BASES DE DATOS MARIA DB/SQL
+
+docker exec -it mysql-orders mysql -u root -p
+
+ALTER USER 'orders_user'@'%' 
+IDENTIFIED WITH mysql_native_password 
+BY 'orders_pass';
+
+FLUSH PRIVILEGES;

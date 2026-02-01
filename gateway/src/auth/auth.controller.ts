@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Public } from './decorators/public.decorator';
-import { Request, Response } from 'express'; // 👈 ESTO ES CLAVE
+import { Request, Response } from 'express'; 
 import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('auth')

@@ -1,12 +1,16 @@
 import { RpcException } from '@nestjs/microservices';
-import { CatalogErrors } from './error-codes';
+import { ApiError } from '../interfaces/api-error.interface';
 
-export function mapMongoError(error: any): never {
+export function mapMongoError(
+  error: any,
+  fallbackError: ApiError,
+): never {
 
+  // Duplicate key (unique index)
   if (error?.code === 11000) {
     throw new RpcException({
       statusCode: 409,
-      ...CatalogErrors.SKU_DUPLICATE,
+      ...fallbackError,
       meta: {
         field: Object.keys(error.keyPattern || {}),
         value: error.keyValue,
@@ -14,8 +18,9 @@ export function mapMongoError(error: any): never {
     });
   }
 
+  // Error genérico Mongo
   throw new RpcException({
     statusCode: 500,
-    ...CatalogErrors.PRODUCT_CREATE_FAILED,
+    ...fallbackError,
   });
 }

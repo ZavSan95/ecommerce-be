@@ -10,13 +10,12 @@ import { Product, ProductDocument } from './schemas/product.schema';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { mapMongoError } from 'src/common/errors/mongo-error.mapper';
-import { ProductIdParamDto } from './dto/product-id-param.dto';
 import { ValidateCheckoutDto } from './dto/validate-checkout.dto';
 import { Category, CategoryDocument } from 'src/categories/schemas/category.schema';
 import { CategoryStatus } from 'src/categories/enum/category-status.enum';
 import { RpcException } from '@nestjs/microservices';
-import { CatalogErrors } from 'src/common/errors/error-codes';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { CategoryErrors, ProductErrors } from 'src/common/errors/error-codes';
 
 @Injectable()
 export class ProductsService {
@@ -111,8 +110,8 @@ export class ProductsService {
 
     if (!category) {
       throw new RpcException({
-        code: CatalogErrors.CATEGORY_NOT_FOUND,
-        message: 'Categoría no encontrada',
+        statusCode: 404,
+        ...CategoryErrors.CATEGORY_NOT_FOUND,
       });
     }
 
@@ -125,6 +124,7 @@ export class ProductsService {
 
     return products;
   }
+
 
   async getBySlugProduct(slug: string) {
 
@@ -152,14 +152,14 @@ export class ProductsService {
       if(!category){
         throw new RpcException({
           statusCode: 400,
-          ...CatalogErrors.CATEGORY_NOT_FOUND,
+          ...CategoryErrors.CATEGORY_NOT_FOUND,
         });
       }
 
       if(category.status !== CategoryStatus.ACTIVE){
         throw new RpcException({
           statusCode: 400,
-          ...CatalogErrors.CATEGORY_INACTIVE,
+          ...CategoryErrors.CATEGORY_INACTIVE,
         });
       }
 
@@ -172,7 +172,7 @@ export class ProductsService {
       if(duplicateSkus.length > 0){
         throw new RpcException({
           statusCode: 400,
-          ...CatalogErrors.SKU_DUPLICATE
+          ...ProductErrors.SKU_DUPLICATE
         });
       }
 
@@ -187,15 +187,15 @@ export class ProductsService {
       return product;
 
       
-    } catch (error) {
+    }catch (error) {
 
       if (error instanceof RpcException) {
         throw error;
       }
 
-      // 🔹 Si es error de Mongo u otro
-      throw mapMongoError(error);
+      throw mapMongoError(error, ProductErrors.PRODUCT_CREATE_FAILED);
     }
+
   }
 
   async findAll() {
@@ -300,9 +300,12 @@ export class ProductsService {
     ============================= */
     try {
       return await product.save();
-    } catch (error) {
-      if (error instanceof RpcException) throw error;
-      throw mapMongoError(error);
+    }catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+
+      throw mapMongoError(error, ProductErrors.PRODUCT_UPDATE_FAILED);
     }
   }
 
@@ -314,7 +317,7 @@ export class ProductsService {
     if(!product){
       throw new RpcException({
         statusCode: 400,
-        ...CatalogErrors.PRODUCT_NOT_FOUND,
+        ...ProductErrors.PRODUCT_NOT_FOUND,
       });
     }
     await product.deleteOne();
