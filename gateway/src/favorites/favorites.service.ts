@@ -11,24 +11,14 @@ export class FavoritesService {
         private readonly natsClient: ClientProxy
     ){}
 
-    async addFavorite(dto: FavoriteDto){
-        return await firstValueFrom(
-            this.natsClient.send('favorites.add', dto).pipe(
-                catchError((error) => {
-                    throw error;
-                }),
-            ),
-        );
-    }
-
-    async removeFavorite(id: string){
-        return await firstValueFrom(
-            this.natsClient.send('favorites.remove', id).pipe(
-                catchError((error) => {
-                    throw error;
-                }),
-            ),
-        );
+    async toggleFavorite(dto: FavoriteDto, userId: string) {
+    return await firstValueFrom(
+        this.natsClient.send('favorites.toggle', {
+        userId,
+        productId: dto.productId,
+        sku: dto.sku,
+        }),
+    );
     }
 
     getAll(userId: string, pagination: PaginationDto) {
