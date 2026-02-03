@@ -6,10 +6,11 @@ import { firstValueFrom } from 'rxjs';
 
 import { Favorite, FavoriteDocument } from './schemas/favorite.schema';
 import { Product, ProductDocument } from 'src/products/schemas/product.schema';
-import { FavoriteDto } from './dto/favorite.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { mapMongoError } from 'src/common/errors/mongo-error.mapper';
 import { FavoriteErrors } from 'src/common/errors/error-codes';
+import { FavoriteAddPayload } from './interfaces/add-favorite.interface';
+import { FavoriteRemovePayload } from './interfaces/remove-favorite.interface';
 
 /* ======================================================
    🔹 Tipos de lectura (NO mongoose documents)
@@ -141,10 +142,9 @@ export class FavoritesService {
     };
   }
 
-  /* ======================================================
-     ➕ ADD FAVORITE
-  ====================================================== */
-  async addFavorite({ userId, productId, sku }: FavoriteDto) {
+  async toggleFavorite({ userId, productId, sku }: FavoriteAddPayload) {
+
+    // 1️⃣ Validaciones
     const user = await firstValueFrom(
       this.natsClient.send('user.verify', userId),
     );
@@ -168,51 +168,36 @@ export class FavoritesService {
       });
     }
 
-    const exists = await this.favoriteModel.findOne({
+    // 2️⃣ Buscar favorito existente
+    const existing = await this.favoriteModel.findOne({
       userId,
       productId,
       sku,
     });
 
-    if (exists) {
-      throw new RpcException({
-        statusCode: 409,
-        message: 'El producto ya está en favoritos',
-      });
-    }
+    // 3️⃣ SI EXISTE → ELIMINAR
+    if (existing) {
+      await existing.deleteOne();
 
-    try {
-      return await this.favoriteModel.create({
-        userId,
-        productId,
-        sku,
-      });
-    } catch (error) {
-      throw mapMongoError(error, FavoriteErrors.FAVORITE_ADD_ERROR);
-    }
-  }
-
-  /* ======================================================
-     ❌ REMOVE FAVORITE
-  ====================================================== */
-  async removeFavorite(id: string) {
-    const favorite = await this.favoriteModel.findById(id);
-
-    if (!favorite) {
-      throw new RpcException({
-        statusCode: 404,
-        message: 'Producto favorito no encontrado',
-      });
-    }
-
-    try {
-      await favorite.deleteOne();
       return {
-        id,
-        message: 'Producto eliminado de favoritos',
+        isFavorite: false,
+        favoriteId: null,
       };
-    } catch (error) {
-      throw mapMongoError(error, FavoriteErrors.FAVORITE_REMOVE_ERROR);
     }
+
+    // 4️⃣ SI NO EXISTE → CREAR
+    const created = await this.favoriteModel.create({
+      userId,
+      productId,
+      sku,
+    });
+
+    return {
+      isFavorite: true,
+      favoriteId: created._id.toString(),
+    };
   }
+
+
+
 }

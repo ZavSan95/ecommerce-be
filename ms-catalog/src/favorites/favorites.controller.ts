@@ -1,21 +1,17 @@
 import { Controller } from '@nestjs/common';
 import { FavoritesService } from './favorites.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { FavoriteDto } from './dto/favorite.dto';
 import { GetFavoritesDto } from './dto/get-favorites.dto';
+import type { FavoriteAddPayload } from './interfaces/add-favorite.interface';
+import type { FavoriteRemovePayload } from './interfaces/remove-favorite.interface';
 
 @Controller()
 export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}
 
-  @MessagePattern('favorites.add')
-  async addFavorite(@Payload() payload: FavoriteDto){
-    return this.favoritesService.addFavorite(payload);
-  }
-
-  @MessagePattern('favorites.remove')
-  async removeFavorite(@Payload() payload: any){
-    return this.favoritesService.removeFavorite(payload);
+  @MessagePattern('favorites.toggle')
+  async toggleFavorite(@Payload() payload: FavoriteAddPayload) {
+    return this.favoritesService.toggleFavorite(payload);
   }
 
   @MessagePattern('favorites.getAll')

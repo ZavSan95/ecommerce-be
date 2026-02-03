@@ -43,6 +43,16 @@ export class ProductService {
     );
   }
 
+  async getById(id: string){
+    return firstValueFrom(
+      this.natsClient.send('product.get.id', id).pipe(
+        catchError((error) => {
+          throw error;
+        }),
+      ),
+    );
+  }
+
   async create(dto: CreateProductDto) {
     return firstValueFrom(
       this.natsClient.send('products.create', dto).pipe(

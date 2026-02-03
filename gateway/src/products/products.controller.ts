@@ -53,6 +53,16 @@ export class ProductsController {
 }
 
   // ---------------------------
+  // GET PRODUCT BY ID
+  // ---------------------------
+  @Public()
+  @Get('id/:id')
+  async getById(@Param('id') id: string){
+    return this.productService.getById(id);
+  }
+
+
+  // ---------------------------
   // CREATE PRODUCT
   // ---------------------------
   @Public()

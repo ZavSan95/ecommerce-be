@@ -45,6 +45,11 @@ export class ProductsController {
     return this.productsService.getBySlugProduct(slug);
   }
 
+  @MessagePattern('product.get.id')
+  async getById(@Payload() id: string){
+    return this.productsService.getById(id);
+  }
+
   @MessagePattern('products.checkout.validate')
   async validateForCheckout(@Payload() dto: ValidateCheckoutDto) {
     return this.productsService.validateForCheckout(dto);

@@ -1,29 +1,71 @@
 import {
+  BadRequestException,
   Controller,
+  Delete,
+  Param,
   Post,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { productImageStorage } from '../common/upload/multer.config';
 import { Public } from '../auth/decorators/public.decorator';
+import { UploadsService } from './uploads.service';
+import {
+  imageFileFilter,
+  imageLimits,
+} from './multer/multer.config';
+import * as multer from 'multer';
 
 @Controller('uploads')
 export class UploadsController {
+  constructor(
+    private readonly uploadsService: UploadsService,
+  ) {}
 
-  @Public()
   @Post('products')
+  @Public()
   @UseInterceptors(
     FilesInterceptor('images', 5, {
-      storage: productImageStorage,
+      storage: multer.memoryStorage(), // ✅ clave
+      fileFilter: imageFileFilter,
+      limits: imageLimits,
     }),
   )
-  uploadProductImages(@UploadedFiles() files: Express.Multer.File[]) {
+  async uploadProductImages(
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No se enviaron imágenes');
+    }
+
+    const processed: { key: string; url: string }[] = [];
+
+    // 🔐 PROCESO SECUENCIAL (Windows-safe)
+    for (const file of files) {
+      const result =
+        await this.uploadsService.processProductImage(file);
+      processed.push(result);
+    }
+
     return {
-      files: files.map(file => ({
-        key: `products/${file.filename}`,
-        url: `http://localhost:3000/uploads/products/${file.filename}`,
-      })),
+      files: processed,
+    };
+  }
+
+  @Delete('products/:filename')
+  async deleteProductImage(
+    @Param('filename') filename: string,
+  ) {
+    if (filename.includes('..')) {
+      throw new BadRequestException(
+        'Nombre de archivo inválido',
+      );
+    }
+
+    await this.uploadsService.deleteProductImage(filename);
+
+    return {
+      message: 'Imagen eliminada correctamente',
     };
   }
 }

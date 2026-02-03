@@ -16,6 +16,7 @@ import { CategoryStatus } from 'src/categories/enum/category-status.enum';
 import { RpcException } from '@nestjs/microservices';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { CategoryErrors, ProductErrors } from 'src/common/errors/error-codes';
+import { Favorite, FavoriteDocument } from 'src/favorites/schemas/favorite.schema';
 
 @Injectable()
 export class ProductsService {
@@ -24,6 +25,8 @@ export class ProductsService {
     private readonly productModel: Model<ProductDocument>,
     @InjectModel(Category.name)
     private readonly categoryModel: Model<CategoryDocument>,
+    @InjectModel(Favorite.name)
+    private readonly favoriteModel: Model<FavoriteDocument>
   ) {}
 
 
@@ -143,6 +146,26 @@ export class ProductsService {
     };
 
   }
+
+  async getById(id: string) {
+    const product = await this.productModel
+      .findById(id)
+      .lean();
+
+    if (!product) {
+      throw new RpcException({
+        statusCode: 404,
+        code: 'PRODUCT_NOT_FOUND',
+        message: 'Producto no encontrado',
+      });
+    }
+
+    return {
+      ...product,
+      variants: product.variants ?? [],
+    };
+  }
+
 
   async create(dto: CreateProductDto) {
     try {
@@ -311,22 +334,44 @@ export class ProductsService {
 
 
   async delete(id: string) {
+    const session = await this.productModel.db.startSession();
+    session.startTransaction();
 
-    const product = await this.productModel.findById(id);
+    try {
+      const product = await this.productModel
+        .findById(id)
+        .session(session);
 
-    if(!product){
-      throw new RpcException({
-        statusCode: 400,
-        ...ProductErrors.PRODUCT_NOT_FOUND,
-      });
+      if (!product) {
+        throw new RpcException({
+          statusCode: 400,
+          ...ProductErrors.PRODUCT_NOT_FOUND,
+        });
+      }
+
+      await this.favoriteModel.deleteMany(
+        { productId: id },
+        { session }
+      );
+
+      await product.deleteOne({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return {
+        message: 'Producto eliminado correctamente',
+        id,
+      };
+
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
     }
-    await product.deleteOne();
-
-    return {
-      message: 'Producto eliminado correctamente',
-      id,
-    };
   }
+
+
 
   async validateForCheckout(dto: ValidateCheckoutDto){
 
