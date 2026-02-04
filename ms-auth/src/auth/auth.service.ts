@@ -14,6 +14,10 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshResponse } from './interfaces/refresh-response.interface';
 import { LogoutDto } from './dto/logout.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
+import { RpcException } from '@nestjs/microservices';
+import { permission } from 'process';
+import { UpdateAdminUserDto } from './dto/admin-update.dto';
 
 @Injectable()
 export class AuthService {
@@ -256,7 +260,7 @@ export class AuthService {
 
     async verifyUser(id: string){
         
-        const user = this.userModel.findById(id);
+        const user = await this.userModel.findById(id);
 
         if(!user){
             return false;
@@ -265,8 +269,100 @@ export class AuthService {
         return true;
     }
 
+    async adminRegister(dto: AdminRegisterDto){
+        
+        const exists = await this.userModel.findOne({email: dto.email});
+
+        if (exists) {
+            throw new ConflictException('Email already registered');
+        }
+
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+        const user = await this.userModel.create({
+            email: dto.email,
+            name: dto.name,
+            roles: [dto.role],
+            permissions: [],
+            isActive: true,
+            password: hashedPassword,
+
+        });
+
+        return { success: true };
+
+    }
+
+    async getUser(id: string) {
+
+        const user = await this.userModel.findById(id);
+
+        if (!user) {
+            throw new RpcException({
+            statusCode: 404,
+            message: 'Usuario no encontrado',
+            });
+        }
+
+        return {
+            id: user._id.toString(),
+            name: user.name,
+            email: user.email,
+            roles: user.roles,
+            permissions: user.permissions,
+            isActive: user.isActive,
+        };
+    }
 
 
+    async updateAdminUser(
+        id: string,
+        dto: UpdateAdminUserDto,
+    ) {
+        const user = await this.userModel.findById(id);
+
+        if (!user) {
+            throw new RpcException({
+            statusCode: 404,
+            message: 'Usuario no encontrado',
+            });
+        }
+
+        user.email = dto.email;
+        user.name = dto.name;
+        user.roles = [dto.role]; 
 
 
+        await user.save();
+
+        return {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+        roles: user.roles,
+        isActive: user.isActive,
+        };
+    }
+
+
+    async toggleUserStatus(id: string){
+        
+        const user = await this.userModel.findById(id);
+
+        if(!user){
+            throw new RpcException({
+                statusCode: 404,
+                message: 'Error al encontrar usuario',
+            });
+        }
+
+        user.isActive = !user.isActive;
+
+        await user.save(); 
+
+        return {
+            id: user.id,
+            status: user.isActive ? 'active' : 'inactive',
+        };
+    }
 }

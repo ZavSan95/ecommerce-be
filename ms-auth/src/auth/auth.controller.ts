@@ -6,6 +6,8 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
+import { UpdateAdminUserDto } from './dto/admin-update.dto';
 
 
 @Controller()
@@ -47,6 +49,35 @@ export class AuthController {
   @MessagePattern('user.verify')
   async verifyUser(@Payload() dto: string){
     return this.authService.verifyUser(dto);
+  }
+
+  @MessagePattern('auth.register.admin')
+  async adminRegister(@Payload() dto: AdminRegisterDto){
+    return this.authService.adminRegister(dto);
+  }
+
+  @MessagePattern('auth.user.get')
+  async getUser(@Payload() id: string){
+    return this.authService.getUser(id);
+  }
+
+  @MessagePattern('auth.update.admin')
+  async updateAdminUser(
+    @Payload()
+    payload: {
+      id: string;
+      data: UpdateAdminUserDto;
+    },
+  ) {
+    const { id, data } = payload;
+    return this.authService.updateAdminUser(id, data);
+  }
+
+  @MessagePattern('auth.user.status')
+  async toggleUserStatus(
+    @Payload() id: string
+  ){
+    return this.authService.toggleUserStatus(id);
   }
   
 

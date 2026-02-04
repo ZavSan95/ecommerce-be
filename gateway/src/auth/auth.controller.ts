@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto';
 import { Public } from './decorators/public.decorator';
 import { Request, Response } from 'express'; 
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { AdminRegisterDto } from './dto/admin-register.dto';
+import { UpdateAdminUserDto } from './dto/admin-update.dto';
 
 @Controller('auth')
 @Public()
@@ -80,7 +82,6 @@ export class AuthController {
       }
     }
   }
-
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {
@@ -172,4 +173,37 @@ export class AuthController {
     );
   }
 
+  @Post('admin-register')
+  async adminRegister(@Body() dto: AdminRegisterDto){
+    return firstValueFrom(
+      this.natsClient.send('auth.register.admin', dto)
+    );
+  }
+
+  @Patch('user/:id')
+  async updateAdminUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateAdminUserDto
+  ){
+    return firstValueFrom(
+      this.natsClient.send('auth.update.admin', {
+        id,
+        data: dto,
+      }),
+    );
+  }
+
+  @Get('user/:id')
+  async getUser(@Param('id') id: string){
+    return firstValueFrom(
+      this.natsClient.send('auth.user.get', id),
+    );
+  }
+
+  @Patch('user/status/:id')
+  toggleStatus(
+    @Param('id') id: string
+  ){
+    return this.natsClient.send('auth.user.status', id);
+  }
 }
