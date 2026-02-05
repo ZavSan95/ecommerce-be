@@ -61,6 +61,23 @@ export class ProductsController {
     return this.productService.getById(id);
   }
 
+  // ---------------------------
+  // GET PRODUCTS RELATED
+  // ---------------------------
+  @Public()
+  @Get('related/:slug')
+  async getProductsRelate(@Param('slug') slug: string){
+    return this.productService.getProductsRelated(slug);
+  }
+
+  // ---------------------------
+  // SEARCH
+  // ---------------------------
+  @Public()
+  @Get('search')
+  searchProducts(@Query('q') query: string) {
+    return this.productService.searchProducts(query);
+  }
 
   // ---------------------------
   // CREATE PRODUCT

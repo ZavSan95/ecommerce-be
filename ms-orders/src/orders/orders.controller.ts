@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { PaymentProvider } from '@prisma/client';
@@ -31,9 +31,17 @@ export class OrdersController {
   }
 
   @MessagePattern('orders.my')
-  async getMyOrders(@Payload() data: { userId: string }){
+  async getMyOrders(@Payload() data: { userId?: string }) {
+    if (!data.userId) {
+      throw new RpcException({
+        statusCode: 400,
+        message: 'userId requerido',
+      });
+    }
+
     return this.ordersService.getMyOrders(data.userId);
   }
+
 
   @MessagePattern('orders.order')
   async getOrderById(@Payload() data: { userId: string, orderId: string }){

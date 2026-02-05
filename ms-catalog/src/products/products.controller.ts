@@ -50,9 +50,21 @@ export class ProductsController {
     return this.productsService.getById(id);
   }
 
+  @MessagePattern('product.related')
+  async getProductsRelated(@Payload() slug: string){
+    return this.productsService.getProductsRelated(slug);
+  }
+
   @MessagePattern('products.checkout.validate')
   async validateForCheckout(@Payload() dto: ValidateCheckoutDto) {
     return this.productsService.validateForCheckout(dto);
+  }
+
+  @MessagePattern('catalog.products.search')
+  searchProducts(
+    @Payload() payload: { query: string },
+  ) {
+    return this.productsService.search(payload.query);
   }
 
   

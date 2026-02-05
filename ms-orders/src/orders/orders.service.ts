@@ -280,21 +280,23 @@ export class OrdersService {
         console.log(`✅ Orden ${payload.orderId} marcada como PAID`);
     }
 
-    async getMyOrders(userId: string){
-        const orders = await this.prisma.order.findMany({
-            where: {
-                customerId: userId,
-            },
-            orderBy: {
-                createdAt: 'asc',
-            },
-            include: {
-                items: true,
-                payments: true,
-            },
-        });
+    async getMyOrders(userId: string) {
+    if (!userId) {
+        return [];
+    }
 
-        return orders;
+    return this.prisma.order.findMany({
+        where: {
+        customerId: userId,
+        },
+        orderBy: {
+        createdAt: 'asc',
+        },
+        include: {
+        items: true,
+        payments: true,
+        },
+    });
     }
 
     async getOrderById(data: { userId: string, orderId: string}){

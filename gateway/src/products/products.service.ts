@@ -53,6 +53,27 @@ export class ProductService {
     );
   }
 
+  async getProductsRelated(slug: string){
+    return await firstValueFrom(
+      this.natsClient.send('product.related', slug).pipe(
+        catchError((error) => {throw error}),
+      ),
+    );
+  }
+
+  async searchProducts(query: string){
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    return firstValueFrom(
+      this.natsClient.send(
+        'catalog.products.search',
+        { query },
+      ),
+    );
+  }
+
   async create(dto: CreateProductDto) {
     return firstValueFrom(
       this.natsClient.send('products.create', dto).pipe(

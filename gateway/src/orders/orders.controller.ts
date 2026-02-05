@@ -7,15 +7,16 @@ import {
   BadRequestException,
   Body,
   Req,
-  UseGuards,
   Param,
+  Res,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, timeout } from 'rxjs';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Public } from '../auth/decorators/public.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { getAuthenticatedUser } from '../auth/utils/get-authenticated-user';
+import { Request, Response } from 'express';
 
 @Controller('orders')
 export class OrdersController {
@@ -110,12 +111,19 @@ export class OrdersController {
   //  My Orders
   // ==========================
   @Get('my')
-  async getMyOrders(@Req() req){
-    const userId = req.user.id;
+  async getMyOrders(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await getAuthenticatedUser(
+      req,
+      res,
+      this.natsClient,
+    );
 
     return firstValueFrom(
       this.natsClient.send('orders.my', {
-        userId,
+        userId: user.id,
       }),
     );
   }

@@ -166,6 +166,61 @@ export class ProductsService {
     };
   }
 
+  async getProductsRelated(slug: string){
+    
+    const product = await this.productModel.findOne({
+      status: 'active',
+      'variants.sku': slug,
+    }).lean();
+
+    if(!product) return null;
+
+    const currentVariant = product.variants.find( v => v.sku === slug);
+
+    if(product.variants.length > 1){
+      return {
+        ...product,
+        variants: product.variants,
+        relatedType: 'variants',
+        related: [],
+      };
+    }
+
+    const relatedProducts = await this.productModel.find({
+      status: 'active',
+      categoryId: product.categoryId,
+      _id: { $ne: product._id },
+    })
+    .limit(4)
+    .lean();
+
+    return {
+      ...product,
+      variants: [currentVariant],
+      relatedType: 'products',
+      related: relatedProducts,
+    };
+  }
+
+  async search(query: string) {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    const regex = new RegExp(query, 'i');
+
+    return this.productModel
+      .find({
+        status: 'active',
+        $or: [
+          { name: regex },
+          { description: regex },
+        ],
+      })
+      .limit(8)
+      .lean();
+  }
+
 
   async create(dto: CreateProductDto) {
     try {
@@ -370,8 +425,6 @@ export class ProductsService {
       throw error;
     }
   }
-
-
 
   async validateForCheckout(dto: ValidateCheckoutDto){
 
