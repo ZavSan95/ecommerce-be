@@ -31,7 +31,10 @@ export class AuthService {
 
         const exists = await this.userModel.findOne({ email: dto.email });
         if (exists) {
-            throw new ConflictException('Email already registered');
+        throw new RpcException({
+            statusCode: 409,
+            message: 'Email already registered',
+        });
         }
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -50,23 +53,33 @@ export class AuthService {
 
 
     async login(dto: LoginDto): Promise<AuthResponse> {
-
     const user = await this.userModel.findOne({ email: dto.email });
+
     if (!user || !user.password) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new RpcException({
+        statusCode: 401,
+        message: 'Invalid credentials',
+        });
     }
 
     const isValid = await bcrypt.compare(dto.password, user.password);
     if (!isValid) {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new RpcException({
+        statusCode: 401,
+        message: 'Invalid credentials',
+        });
     }
 
     if (!user.isActive) {
-        throw new UnauthorizedException('User inactive');
+        throw new RpcException({
+        statusCode: 403,
+        message: 'User inactive',
+        });
     }
 
     return this.buildAuthResponse(user);
     }
+
 
     private async buildAuthResponse(user: UserDocument): Promise<AuthResponse> {
     const userId = user._id.toString();
