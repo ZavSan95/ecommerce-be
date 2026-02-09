@@ -17,27 +17,20 @@ export class AfipService {
   private afip: Afip;
 
   constructor() {
-    const certEnv = process.env.AFIP_CERT_PATH;
-    const keyEnv = process.env.AFIP_KEY_PATH;
+    const cert = process.env.AFIP_CERT;
+    const key = process.env.AFIP_KEY;
     const cuitEnv = process.env.CUIT;
 
-    if (!certEnv || !keyEnv || !cuitEnv) {
+    if (!cert || !key || !cuitEnv) {
       throw new Error(
         'Faltan variables de entorno AFIP (CERT, KEY o CUIT)',
       );
     }
 
-    const certPath = path.resolve(certEnv);
-    const keyPath = path.resolve(keyEnv);
-
-    // 🔑 LEER CONTENIDO (CLAVE DEL PROBLEMA)
-    const cert = fs.readFileSync(certPath, 'utf8');
-    const key = fs.readFileSync(keyPath, 'utf8');
-
     this.afip = new Afip({
       CUIT: Number(cuitEnv),
-      cert, // 👈 contenido, NO path
-      key,  // 👈 contenido, NO path
+      cert, // 👈 contenido directo
+      key,  // 👈 contenido directo
       production: process.env.AFIP_PRODUCTION === 'true',
       access_token: process.env.AFIP_ACCESS_TOKEN,
     });
