@@ -32,20 +32,28 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
-  const allowedOrigins = [
-    'http://localhost:3001',
-    'https://ecommerce-fe.vercel.app',
-  ];
-
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // SSR / Postman
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        'http://localhost:3001',
+        'https://ecommerce-fe.vercel.app',
+      ];
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+
       return callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+    ],
   });
     
   const document = SwaggerModule.createDocument(app, config); 
