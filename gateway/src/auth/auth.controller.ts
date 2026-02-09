@@ -67,25 +67,30 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() dto: LoginDto,
   ) {
-    const result = await firstValueFrom(
-      this.natsClient.send('auth.login', dto),
-    );
+    try {
+      const result = await firstValueFrom(
+        this.natsClient.send('auth.login', dto),
+      );
 
-    res.cookie('access_token', result.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 15 * 60 * 1000,
-    });
+      res.cookie('access_token', result.accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 15 * 60 * 1000,
+      });
 
-    res.cookie('refresh_token', result.refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+      res.cookie('refresh_token', result.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
-    return { user: result.user };
+      return { user: result.user };
+    } catch (err) {
+      console.error('LOGIN ERROR FROM NATS:', err);
+      throw err;
+    }
   }
 
   // ==========================
