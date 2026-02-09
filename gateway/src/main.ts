@@ -32,8 +32,19 @@ async function bootstrap() {
 
   app.use(cookieParser());
 
+  const allowedOrigins = [
+    'http://localhost:3001',
+    'https://ecommerce-fe.vercel.app',
+  ];
+
   app.enableCors({
-    origin: "http://localhost:3001", // 👈 frontend Next
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // SSR / Postman
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   });
     
