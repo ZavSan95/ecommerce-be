@@ -10,8 +10,8 @@ async function bootstrap() {
   
   const app = await NestFactory.create(AppModule); 
 
-  const server = app.getHttpAdapter().getInstance();
-  server.set('trust proxy', 1);
+  const server = express();
+  server.set('trust proxy', 1); 
 
 
   app.useGlobalPipes(
