@@ -1,71 +1,52 @@
 import {
-  BadRequestException,
+  Body,
   Controller,
-  Delete,
-  Param,
+  Get,
   Post,
-  UploadedFiles,
-  UseInterceptors,
+  Param,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { Public } from '../auth/decorators/public.decorator';
 import { UploadsService } from './uploads.service';
-import {
-  imageFileFilter,
-  imageLimits,
-} from './multer/multer.config';
-import * as multer from 'multer';
+import { Public } from '../auth/decorators/public.decorator';
+import { Response } from 'express';
 
 @Controller('uploads')
 export class UploadsController {
-  constructor(
-    private readonly uploadsService: UploadsService,
-  ) {}
+  constructor(private readonly uploadsService: UploadsService) {}
 
-  @Post('products')
-  @Public()
-  @UseInterceptors(
-    FilesInterceptor('images', 5, {
-      storage: multer.memoryStorage(), // ✅ clave
-      fileFilter: imageFileFilter,
-      limits: imageLimits,
-    }),
-  )
-  async uploadProductImages(
-    @UploadedFiles() files: Express.Multer.File[],
-  ) {
-    if (!files || files.length === 0) {
-      throw new BadRequestException('No se enviaron imágenes');
-    }
-
-    const processed: { key: string; url: string }[] = [];
-
-    // 🔐 PROCESO SECUENCIAL (Windows-safe)
-    for (const file of files) {
-      const result =
-        await this.uploadsService.processProductImage(file);
-      processed.push(result);
+  @Post('products/presign')
+  async presignProductImages(@Body() body: { count: number }) {
+    if (!body.count || body.count < 1 || body.count > 10) {
+      throw new BadRequestException('Cantidad inválida');
     }
 
     return {
-      files: processed,
+      uploads: await this.uploadsService.createPresignedUploads(body.count),
     };
   }
 
-  @Delete('products/:filename')
-  async deleteProductImage(
-    @Param('filename') filename: string,
+  /**
+   * Proxy público de imágenes
+   * /api/uploads/products/uuid.webp
+   */
+  @Get('products/*path')
+  @Public()
+  async getProductImage(
+    @Param('path') path: string,
+    @Res() res: Response,
   ) {
-    if (filename.includes('..')) {
-      throw new BadRequestException(
-        'Nombre de archivo inválido',
-      );
+    if (!path) {
+      throw new BadRequestException('Path inválido');
     }
 
-    await this.uploadsService.deleteProductImage(filename);
+    // 🔥 path ya viene correcto: products/uuid.webp
+    const stream =
+      await this.uploadsService.getProductImageStream(
+        `products/${path}`,
+      );
 
-    return {
-      message: 'Imagen eliminada correctamente',
-    };
+    res.setHeader('Content-Type', 'image/webp');
+    stream.pipe(res);
   }
 }

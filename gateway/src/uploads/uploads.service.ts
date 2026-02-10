@@ -1,56 +1,83 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { join } from 'path';
-import * as sharp from 'sharp';
-import { existsSync, promises as fs } from 'fs';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { Readable } from 'stream';
 
 @Injectable()
 export class UploadsService {
+  private s3: S3Client;
+  private bucket = process.env.WASABI_BUCKET!;
 
-  async processProductImage(
-    file: Express.Multer.File,
-  ): Promise<{ key: string; url: string }> {
-
-    const outputFilename = `${randomUUID()}.webp`;
-
-    const outputPath = join(
-      process.cwd(),
-      'uploads',
-      'products',
-      outputFilename,
-    );
-
-    // 🔥 Sharp desde buffer (NO file.path)
-    const buffer = await sharp(file.buffer)
-      .resize(800, 800, {
-        fit: 'cover',
-        position: 'center',
-      })
-      .toFormat('webp', { quality: 80 })
-      .toBuffer();
-
-    // ✍️ Guardás SOLO el archivo final
-    await fs.writeFile(outputPath, buffer);
-
-    return {
-      key: `products/${outputFilename}`,
-      url: `http://localhost:3000/uploads/products/${outputFilename}`,
-    };
+  constructor() {
+    this.s3 = new S3Client({
+      endpoint: process.env.WASABI_ENDPOINT,
+      region: process.env.WASABI_REGION ?? 'us-east-1',
+      credentials: {
+        accessKeyId: process.env.WASABI_ACCESS_KEY!,
+        secretAccessKey: process.env.WASABI_SECRET_KEY!,
+      },
+      forcePathStyle: true,
+    });
   }
 
+  async createPresignedUploads(count: number) {
+    const uploads: {
+      key: string;
+      uploadUrl: string;
+      viewUrl: string;
+    }[] = [];
 
-  async deleteProductImage(filename: string) {
-    const filePath = join(
-      process.cwd(),
-      'uploads',
-      'products',
-      filename,
-    );
+    for (let i = 0; i < count; i++) {
+      const key = `products/${randomUUID()}.webp`;
 
-    if (!existsSync(filePath)) {
-      throw new NotFoundException('Archivo no encontrado');
+      // ⬆️ PUT
+      const uploadCommand = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: 'image/webp',
+      });
+
+      const uploadUrl = await getSignedUrl(
+        this.s3,
+        uploadCommand,
+        { expiresIn: 60 },
+      );
+
+      // 👀 GET (debug / admin opcional)
+      const viewCommand = new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      });
+
+      const viewUrl = await getSignedUrl(
+        this.s3,
+        viewCommand,
+        { expiresIn: 60 * 60 },
+      );
+
+      uploads.push({
+        key,
+        uploadUrl,
+        viewUrl,
+      });
     }
 
-    await fs.unlink(filePath);
+    return uploads;
+  }
+
+  async getProductImageStream(key: string): Promise<Readable> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+    });
+
+    const response = await this.s3.send(command);
+
+    return response.Body as Readable;
   }
 }
